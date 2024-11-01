@@ -3,24 +3,51 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@ethereum-attestation-service/eas-sdk": "^2.7.0",
+    "@hookform/resolvers": "^3.9.1",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@reown/appkit": "^1.2.0",
+    "@reown/appkit-adapter-ethers": "^1.2.0",
+    "@reown/appkit-siwe": "^1.2.0",
+    "@t3-oss/env-nextjs": "^0.11.1",
+    "@tanstack/react-query": "^5.59.16",
+    "cva": "1.0.0-beta.1",
+    "ethers": "^6.13.4",
+    "lucide-react": "^0.454.0",
+    "next": "15.0.2",
+    "next-auth": "^4.24.10",
+    "next-themes": "^0.3.0",
     "react": "19.0.0-rc-02c0e824-20241028",
     "react-dom": "19.0.0-rc-02c0e824-20241028",
-    "next": "15.0.2"
+    "react-hook-form": "^7.53.1",
+    "sonner": "^1.5.0",
+    "tailwind-merge": "^2.5.4",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@antfu/eslint-config": "^3.8.0",
+    "@eslint-react/eslint-plugin": "^1.15.0",
+    "@next/eslint-plugin-next": "^15.0.2",
+    "@tanstack/react-query-devtools": "^5.59.16",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "eslint": "^9.13.0",
+    "eslint-config-next": "15.0.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.12",
+    "eslint-plugin-tailwindcss": "^3.17.5",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "eslint": "^8",
-    "eslint-config-next": "15.0.2"
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5"
   }
 }
