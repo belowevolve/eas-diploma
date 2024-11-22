@@ -10,7 +10,8 @@ export function Navbar() {
         <ul className="flex items-center gap-4">
           <Link href="/"><HomeIcon /></Link>
           /
-          <Link href="/register">Регистрация</Link>
+          {/* <Link href="/register">Регистрация</Link> */}
+          <Link href="/create">Создание аттестата</Link>
         </ul>
         <w3m-button label="Подключите кошелек" loadingLabel="Подключение..." balance="hide" />
       </nav>

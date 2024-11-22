@@ -1,9 +1,13 @@
 'use client'
+import { PageContainer } from '@/shared/ui/page-container'
+import { Text } from '@/shared/ui/text'
 
 export default function Home() {
   return (
-    <h1>
-      ABoba
-    </h1>
+    <PageContainer>
+      <Text>
+        Main page
+      </Text>
+    </PageContainer>
   )
 }

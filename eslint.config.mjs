@@ -10,6 +10,7 @@ export default antfu({
   rules: {
     'n/prefer-global/process': ['off'],
     'no-console': ['warn'],
+    'regexp/no-obscure-range': ['off'],
   },
 }, tailwind.configs['flat/recommended'], ...compat.config({
   extends: [
