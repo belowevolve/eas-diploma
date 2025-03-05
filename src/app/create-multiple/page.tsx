@@ -11,7 +11,8 @@ import { Text } from '@/shared/ui/text'
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
-import { formSchema } from '../create/model'
+import { z } from 'zod'
+import { MerkleValue } from '@ethereum-attestation-service/eas-sdk'
 
 // Define the structure for a single attestation record
 interface AttestationRecord {
@@ -24,12 +25,16 @@ interface AttestationRecord {
   to: string
 }
 
-// Define the types for EAS SDK components
-interface MerkleValue {
-  type: string
-  name: string
-  value: string | number
-}
+// Simple validation schema
+const recordSchema = z.object({
+  degree: z.string().min(1),
+  fio: z.string().min(1),
+  faculty: z.string().min(1),
+  program: z.string().min(1),
+  diploma_theme: z.string().min(1),
+  date: z.coerce.number(),
+  to: z.string().startsWith('0x'),
+})
 
 export default function Page() {
   const { address } = useAppKitAccount()
@@ -38,10 +43,13 @@ export default function Page() {
   const [records, setRecords] = useState<AttestationRecord[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [processedCount, setProcessedCount] = useState(0)
-  const [totalCount, setTotalCount] = useState(0)
-  const [errors, setErrors] = useState<string[]>([])
 
+  // Handle wallet connection
+  const handleConnectWallet = () => {
+    open()
+  }
+
+  // Parse CSV or XLSX file
   const parseFile = async (file: File) => {
     const reader = new FileReader()
     
@@ -75,50 +83,44 @@ export default function Page() {
           parsedData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet)
         }
         
-        console.log('Parsed data:', parsedData)
+        // Validate and convert records
+        const validRecords: AttestationRecord[] = []
+        const errors: string[] = []
         
-        // Validate the data structure
-        const validatedRecords: AttestationRecord[] = []
-        const validationErrors: string[] = []
-        
-        parsedData.forEach((record: Record<string, any>, index: number) => {
+        parsedData.forEach((record, index) => {
           try {
-            // Validate each record against the schema
-            const validatedRecord = formSchema.parse({
+            const validRecord = recordSchema.parse({
               degree: record.degree,
               fio: record.fio,
               faculty: record.faculty,
               program: record.program,
               diploma_theme: record.diploma_theme,
-              date: Number(record.date),
+              date: record.date,
               to: record.to,
             })
-            validatedRecords.push(validatedRecord)
+            validRecords.push(validRecord)
           } catch (error) {
-            validationErrors.push(`Row ${index + 2}: ${(error as Error).message}`)
+            errors.push(`Ошибка в строке ${index + 2}: ${(error as Error).message}`)
           }
         })
         
-        if (validationErrors.length > 0) {
-          setErrors(validationErrors)
-          toast.error(`Found ${validationErrors.length} errors in the file`)
-        } else {
-          setErrors([])
+        if (errors.length > 0) {
+          toast.error(`Найдено ${errors.length} ошибок в файле`)
+          console.error(errors)
         }
         
         // Limit to 100 records
-        const limitedRecords = validatedRecords.slice(0, 100)
+        const limitedRecords = validRecords.slice(0, 100)
         setRecords(limitedRecords)
-        setTotalCount(limitedRecords.length)
         
         if (limitedRecords.length > 0) {
-          toast.success(`Loaded ${limitedRecords.length} valid records`)
+          toast.success(`Загружено ${limitedRecords.length} записей`)
         } else {
-          toast.error('No valid records found in the file')
+          toast.error('Не найдено корректных записей в файле')
         }
       } catch (error) {
-        console.error('Error parsing file:', error)
-        toast.error('Error parsing file. Please check the format.')
+        console.error('Ошибка при обработке файла:', error)
+        toast.error('Ошибка при обработке файла. Проверьте формат.')
       }
     }
     
@@ -136,6 +138,7 @@ export default function Page() {
     }
   }
 
+  // Process all attestations in a single transaction
   const processAttestations = async () => {
     if (!address || !signer) {
       toast.error('Подключите кошелек')
@@ -143,83 +146,81 @@ export default function Page() {
     }
     
     if (records.length === 0) {
-      toast.error('No valid records to process')
+      toast.error('Нет записей для обработки')
       return
     }
     
     setIsProcessing(true)
-    setProgress(0)
-    setProcessedCount(0)
+    setProgress(10)
     
     try {
       eas.connect(signer)
       
-      for (let i = 0; i < records.length; i++) {
-        const record = records[i]
-        
-        try {
-          // Create merkle tree for private data
-          const merkle: MerkleValue[] = [
-            { type: 'string', name: 'degree', value: record.degree },
-            { type: 'string', name: 'fio', value: record.fio },
-            { type: 'string', name: 'faculty', value: record.faculty },
-            { type: 'string', name: 'program', value: record.program },
-            { type: 'string', name: 'diploma_theme', value: record.diploma_theme },
-            { type: 'uint256', name: 'date', value: record.date },
-          ]
-          
-          // Use the EAS SDK to create attestations
-          // Note: We're using dynamic imports here to avoid TypeScript errors
-          const { PrivateData, SchemaEncoder } = await import('@ethereum-attestation-service/eas-sdk')
-          
-          const privateData = new PrivateData(merkle)
-          const fullTree = privateData.getFullTree()
-          const schemaEncoder = new SchemaEncoder('bytes32 privateData')
-          const encodedData = schemaEncoder.encodeData([{ name: 'privateData', value: fullTree.root, type: 'bytes32' }])
-          
-          // Create attestation
-          const transaction = await eas.attest({
-            schema: env.NEXT_PUBLIC_DIPLOMA_SCHEMA_UID,
-            data: {
-              recipient: record.to,
-              expirationTime: 0n,
-              revocable: true,
-              data: encodedData,
-            },
-          })
-          
-          await transaction.wait()
-          
-          // Update progress
-          setProcessedCount(i + 1)
-          setProgress(Math.round(((i + 1) / records.length) * 100))
-        } catch (error) {
-          console.error(`Error processing record ${i + 1}:`, error)
-          toast.error(`Error processing record ${i + 1}: ${(error as Error).message}`)
-        }
-      }
+      // Import EAS SDK components
+      const { PrivateData, SchemaEncoder } = await import('@ethereum-attestation-service/eas-sdk')
       
-      toast.success(`Successfully processed ${processedCount} attestations`)
+      setProgress(30)
+      
+      // Prepare all attestation data
+      const attestationData = await Promise.all(records.map(async (record) => {
+        // Create merkle tree for private data
+        const merkle: MerkleValue[] = [
+          { type: 'string', name: 'degree', value: record.degree },
+          { type: 'string', name: 'fio', value: record.fio },
+          { type: 'string', name: 'faculty', value: record.faculty },
+          { type: 'string', name: 'program', value: record.program },
+          { type: 'string', name: 'diploma_theme', value: record.diploma_theme },
+          { type: 'uint256', name: 'date', value: record.date },
+        ]
+        
+        const privateData = new PrivateData(merkle)
+        const fullTree = privateData.getFullTree()
+        const schemaEncoder = new SchemaEncoder('bytes32 privateData')
+        const encodedData = schemaEncoder.encodeData([{ name: 'privateData', value: fullTree.root, type: 'bytes32' }])
+        
+        return {
+          recipient: record.to,
+          expirationTime: 0n,
+          revocable: true,
+          data: encodedData,
+        }
+      }))
+      
+      setProgress(60)
+      
+      // Create a single multiAttest transaction for all records
+      const transaction = await eas.multiAttest([
+        {
+          schema: env.NEXT_PUBLIC_DIPLOMA_SCHEMA_UID,
+          data: attestationData,
+        },
+      ])
+      
+      setProgress(80)
+      
+      // Wait for transaction to complete
+      const newAttestationUIDs = await transaction.wait()
+      
+      console.log('New attestation UIDs:', newAttestationUIDs)
+      
+      setProgress(100)
+      toast.success(`Успешно обработано ${records.length} аттестаций в одной транзакции`)
     } catch (error) {
-      console.error('Error processing attestations:', error)
-      toast.error(`Error processing attestations: ${(error as Error).message}`)
+      console.error('Ошибка при обработке аттестаций:', error)
+      toast.error(`Ошибка: ${(error as Error).message}`)
     } finally {
       setIsProcessing(false)
     }
   }
 
-  const handleConnectWallet = () => {
-    open()
-  }
-
   return (
     <PageContainer>
       <Text as="h2" variant="h2">Создание множественных аттестатов</Text>
-      <div className="w-full max-w-2xl space-y-6">
+      <div className="w-full max-w-4xl space-y-6">
         <div className="space-y-2">
           <Text>Загрузите CSV или XLSX файл с данными для аттестатов (до 100 записей)</Text>
           <Text type="muted">
-            Файл должен содержать следующие колонки: degree, fio, faculty, program, diploma_theme, date, to
+            Файл должен содержать колонки: degree, fio, faculty, program, diploma_theme, date, to
           </Text>
           <div>
             <a href="/diploma_template.csv" download className="text-primary hover:underline">
@@ -237,37 +238,62 @@ export default function Page() {
           />
           
           {records.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-4">
               <Text>Загружено {records.length} записей</Text>
-              {errors.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <Text as="p" className="font-semibold text-destructive">Ошибки валидации:</Text>
-                  <ul className="max-h-40 overflow-y-auto space-y-1 text-sm text-destructive">
-                    {errors.map((error, index) => (
-                      <li key={index}>{error}</li>
+              
+              {/* Simple table to display records */}
+              <div className="border rounded-md overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Степень</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Факультет</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Программа</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Адрес</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {records.slice(0, 10).map((record, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 whitespace-nowrap text-sm">{record.fio}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm">{record.degree}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm">{record.faculty}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm">{record.program}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm font-mono text-xs">{record.to}</td>
+                      </tr>
                     ))}
-                  </ul>
-                </div>
-              )}
+                  </tbody>
+                </table>
+                {records.length > 10 && (
+                  <div className="px-3 py-2 text-sm text-gray-500 text-center border-t">
+                    Показано 10 из {records.length} записей
+                  </div>
+                )}
+              </div>
             </div>
           )}
           
           {isProcessing && (
             <div className="space-y-2">
-              <Text>Обработано {processedCount} из {totalCount}</Text>
+              <Text>Обработка аттестатов...</Text>
               <Progress value={progress} className="h-2 w-full" />
             </div>
           )}
           
-          {address
-            ? <Button 
-                onClick={processAttestations} 
-                disabled={isProcessing || records.length === 0 || errors.length > 0} 
-                className="w-full"
-              >
-                {isProcessing ? 'Обработка...' : 'Создать аттестаты'}
-              </Button>
-            : <Button onClick={handleConnectWallet} className="w-full">Подключите кошелек</Button>}
+          {address ? (
+            <Button 
+              onClick={processAttestations} 
+              disabled={isProcessing || records.length === 0} 
+              className="w-full"
+            >
+              {isProcessing ? 'Обработка...' : 'Создать аттестаты'}
+            </Button>
+          ) : (
+            <Button onClick={handleConnectWallet} className="w-full">
+              Подключить кошелек
+            </Button>
+          )}
         </div>
       </div>
     </PageContainer>

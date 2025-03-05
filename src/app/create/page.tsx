@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/shared/ui/input'
 import { PageContainer } from '@/shared/ui/page-container'
 import { Text } from '@/shared/ui/text'
-import { type MerkleValue, PrivateData, SchemaEncoder } from '@ethereum-attestation-service/eas-sdk'
+import { type MerkleValue, NO_EXPIRATION, PrivateData, SchemaEncoder } from '@ethereum-attestation-service/eas-sdk'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react'
 import { useForm } from 'react-hook-form'
@@ -51,12 +51,12 @@ export default function Page() {
     const fullTree = privateData.getFullTree()
     const schemaEncoder = new SchemaEncoder('bytes32 privateData')
     const encodedData = schemaEncoder.encodeData([{ name: 'privateData', value: fullTree.root, type: 'bytes32' }])
-
+    console.log(encodedData)
     const transaction = await eas.attest({
       schema: env.NEXT_PUBLIC_DIPLOMA_SCHEMA_UID,
       data: {
         recipient: values.to,
-        expirationTime: 0n,
+        expirationTime: NO_EXPIRATION,
         revocable: true,
         data: encodedData,
       },
