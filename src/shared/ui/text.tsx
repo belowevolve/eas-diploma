@@ -35,23 +35,27 @@ const textVariants = cva({
 })
 
 export interface TextProps
-  extends React.HTMLAttributes<HTMLParagraphElement>,
+  extends React.ComponentProps<'p'>,
   VariantProps<typeof textVariants> {
   as?: 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'span'
 }
 
-const Text = React.forwardRef<HTMLParagraphElement, TextProps>(
-  ({ className, variant, as, type, add, ...props }, ref) => {
-    const Comp = as || variant || 'p'
-    return (
-      <Comp
-        className={cn(textVariants({ variant, type, add, className }))}
-        ref={ref}
-        {...props}
-      />
-    )
-  },
-)
+function Text({
+  className,
+  variant,
+  as,
+  type,
+  add,
+  ...props
+}: TextProps) {
+  const Comp = as || variant || 'p'
+  return (
+    <Comp
+      className={cn(textVariants({ variant, type, add, className }))}
+      {...props}
+    />
+  )
+}
 Text.displayName = 'Text'
 
 export { Text, textVariants }

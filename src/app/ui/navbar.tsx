@@ -6,7 +6,7 @@ import React from 'react'
 export function Navbar() {
   return (
     <header className="border-b">
-      <nav className="mx-auto flex h-16 max-w-screen-xl items-center justify-between px-4">
+      <nav className="mx-auto flex h-16 max-w-(--breakpoint-xl) items-center justify-between px-4">
         <ul className="flex items-center gap-4">
           <Link href="/"><HomeIcon /></Link>
           /
