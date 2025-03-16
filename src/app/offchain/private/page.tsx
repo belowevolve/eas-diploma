@@ -20,8 +20,9 @@ export default function PrivateAttestationPage() {
   const { generateProof, proofResult } = useMerkleProof(merkle?.values)
 
   const download = () => {
-    if (!attestation)
+    if (!attestation) {
       return
+    }
 
     const dataStr = JSON.stringify(attestation, (key, value) =>
       typeof value === 'bigint' ? value.toString() : value, 2)

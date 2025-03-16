@@ -1,11 +1,27 @@
 import antfu from '@antfu/eslint-config'
+import nextPlugin from '@next/eslint-plugin-next'
 
-export default antfu({
-  react: true,
-  ignores: [],
-  rules: {
-    'n/prefer-global/process': ['off'],
-    'no-console': ['warn'],
-    'regexp/no-obscure-range': ['off'],
+export default antfu(
+  {
+    react: true,
+    typescript: true,
+    ignores: ['migrations/**/*', 'next-env.d.ts'],
   },
-})
+  {
+    plugins: {
+      '@next/next': nextPlugin,
+    },
+    rules: {
+      ...nextPlugin.configs.recommended.rules,
+      ...nextPlugin.configs['core-web-vitals'].rules,
+    },
+  },
+  {
+    rules: {
+      'no-console': ['warn'],
+      'regexp/no-obscure-range': ['off'],
+      'antfu/no-top-level-await': 'off',
+      'node/prefer-global/process': 'off',
+    },
+  },
+)
