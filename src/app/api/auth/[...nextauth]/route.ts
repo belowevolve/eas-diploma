@@ -1,8 +1,9 @@
+import type { SIWESession } from '@reown/appkit-siwe'
 import { env } from '@/env'
 import {
   getAddressFromMessage,
   getChainIdFromMessage,
-  type SIWESession,
+
   verifySignature,
 } from '@reown/appkit-siwe'
 import NextAuth from 'next-auth'

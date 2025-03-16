@@ -1,6 +1,6 @@
 import type { SIWECreateMessageArgs, SIWESession, SIWEVerifyMessageArgs } from '@reown/appkit-siwe'
-import { baseSepolia } from '@reown/appkit/networks'
 import { createSIWEConfig, formatMessage } from '@reown/appkit-siwe'
+import { baseSepolia } from '@reown/appkit/networks'
 import { getCsrfToken, getSession, signIn, signOut } from 'next-auth/react'
 
 export const siweConfig = createSIWEConfig({

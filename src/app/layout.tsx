@@ -1,7 +1,5 @@
 import type { Metadata } from 'next'
 import { cn } from '@/shared/lib/cn'
-import { eas } from '@/shared/lib/eas'
-import { ethers } from 'ethers'
 import { Inter as FontSans } from 'next/font/google'
 import { headers } from 'next/headers'
 import { LayoutProvider } from './layout-provider'

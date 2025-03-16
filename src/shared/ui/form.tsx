@@ -41,9 +41,9 @@ function FormField<
     name: props.name,
   }), [props.name])
   return (
-    <FormFieldContext.Provider value={contextValue}>
+    <FormFieldContext value={contextValue}>
       <Controller {...props} />
-    </FormFieldContext.Provider>
+    </FormFieldContext>
   )
 }
 
@@ -62,9 +62,9 @@ function FormItem({
   const id = React.useId()
   const contextValue = useMemo(() => ({ id }), [id])
   return (
-    <FormItemContext.Provider value={contextValue}>
+    <FormItemContext value={contextValue}>
       <div className={cn('space-y-2', className)} {...props} />
-    </FormItemContext.Provider>
+    </FormItemContext>
   )
 }
 

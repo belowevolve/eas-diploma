@@ -1,15 +1,15 @@
 'use server'
 import type { Address } from 'viem'
+import type { FormSchema } from './model'
 import { env } from '@/env'
 import { RESOLVER_ABI } from '@/shared/contracts/resolver'
 import { clientToProvider } from '@/shared/hooks/useProvider'
-import { clientToSigner } from '@/shared/hooks/useSigner'
 import { eas } from '@/shared/lib/eas'
 import { backendAccount, backendWalletClient, publicClient } from '@/shared/lib/viem'
 import { SchemaEncoder } from '@ethereum-attestation-service/eas-sdk'
 import { ethers } from 'ethers'
 import { redirect } from 'next/navigation'
-import { formSchema, type FormSchema } from './model'
+import { formSchema } from './model'
 
 export async function register(data: FormSchema, userAddress: Address) {
   const parsed = formSchema.safeParse(data)

@@ -1,7 +1,8 @@
 import type { Chain, Client, Transport } from 'viem'
+import type { Config } from 'wagmi'
 import { FallbackProvider, JsonRpcProvider } from 'ethers'
 import { useMemo } from 'react'
-import { type Config, useClient } from 'wagmi'
+import { useClient } from 'wagmi'
 
 export function clientToProvider(client: Client<Transport, Chain>) {
   const { chain, transport } = client

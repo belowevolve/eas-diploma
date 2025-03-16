@@ -1,5 +1,6 @@
+import type { VariantProps } from 'cva'
 import { cn } from '@/shared/lib/cn'
-import { cva, type VariantProps } from 'cva'
+import { cva } from 'cva'
 import * as React from 'react'
 
 const textVariants = cva({
