@@ -1,9 +1,12 @@
+import type { MerkleMultiProof, MerkleValue } from '@ethereum-attestation-service/eas-sdk'
+import { setTimeout } from 'node:timers'
+import { FRAGMENTS, routes } from '@/shared/config/ROUTES'
 import { Button } from '@/shared/ui/button'
 import { Checkbox } from '@/shared/ui/checkbox'
 import { Text } from '@/shared/ui/text'
-import { MerkleValue, MerkleMultiProof } from '@ethereum-attestation-service/eas-sdk'
+import { encodeUriFragment } from '@/shared/utils/uri-fragment'
 import { useState } from 'react'
-
+import { toast } from 'sonner'
 
 interface PrivateDataProofProps {
   privateData?: MerkleValue[]
@@ -12,8 +15,9 @@ interface PrivateDataProofProps {
 }
 
 export function PrivateDataProof({ privateData, onGenerateProof, proofResult }: PrivateDataProofProps) {
-  const [selectedRows, setSelectedRows] = useState<number[]>([])
+  const [copySuccess, setCopySuccess] = useState<boolean>(false)
 
+  const [selectedRows, setSelectedRows] = useState<number[]>([])
   const handleRowSelect = (index: number) => {
     setSelectedRows(prev =>
       prev.includes(index)
@@ -24,6 +28,39 @@ export function PrivateDataProof({ privateData, onGenerateProof, proofResult }: 
 
   const handleGenerateProof = () => {
     onGenerateProof(selectedRows)
+  }
+
+  const handleCopyLink = async () => {
+    const uriFragment = window.location.hash
+
+    const parts = uriFragment.split(FRAGMENTS.attestation)
+    let paramValue = parts[1]
+    const nextParamIndex = paramValue.indexOf('&')
+    if (nextParamIndex !== -1) {
+      paramValue = paramValue.substring(0, nextParamIndex)
+    }
+
+    const attestation = decodeURIComponent(paramValue)
+
+    if (!proofResult || !attestation)
+      return
+
+    try {
+      const url = `${location.origin}${routes.offchainView({
+        attestation,
+        proofs: encodeUriFragment(proofResult),
+      })}`
+
+      await navigator.clipboard.writeText(url)
+      setCopySuccess(true)
+      toast.success('Ссылка с доказательством скопирована в буфер обмена')
+
+      // Сбросить статус успешного копирования через 2 секунды
+      setTimeout(() => setCopySuccess(false), 2000)
+    }
+    catch (err) {
+      console.error('Failed to copy link:', err)
+    }
   }
 
   return (
@@ -61,9 +98,18 @@ export function PrivateDataProof({ privateData, onGenerateProof, proofResult }: 
         </table>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {proofResult && (
+          <Button
+            onClick={handleCopyLink}
+            variant="outline"
+            className={copySuccess ? 'bg-green-100' : ''}
+          >
+            {copySuccess ? 'Ссылка скопирована!' : 'Скопировать ссылку'}
+          </Button>
+        )}
         <Button onClick={handleGenerateProof}>
-          Generate Proof
+          Сгенерировать доказательство
         </Button>
       </div>
 

@@ -1,13 +1,13 @@
 'use client'
 
-import {  useFragmentsDecoder } from '@/shared/hooks/use-fragments-decoder'
+import { PrivateDataProof } from '@/app/offchain/private/ui/private-data-proof'
+import { useFragmentsDecoder } from '@/shared/hooks/use-fragments-decoder'
 import { useMerkleProof } from '@/shared/hooks/use-merkle-proof'
 import { formatDate } from '@/shared/lib/utils'
 import { AttestationQRCode } from '@/shared/ui/attestation-qr-code'
 import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/shared/ui/card'
 import { PageContainer } from '@/shared/ui/page-container'
-import { PrivateDataProof } from '@/app/offchain/private/ui/private-data-proof'
 import { Text } from '@/shared/ui/text'
 import { useState } from 'react'
 
@@ -17,9 +17,7 @@ export default function PrivateAttestationPage() {
   const merkle = fragments.merkle
   const [showRawData, setShowRawData] = useState(false)
 
-
   const { generateProof, proofResult } = useMerkleProof(merkle?.values)
-
 
   const download = () => {
     if (!attestation)
@@ -205,12 +203,6 @@ export default function PrivateAttestationPage() {
         </CardContent>
 
         <CardFooter className="flex justify-end space-x-4 mt-6">
-          <Button variant="outline" onClick={() => window.location.href = '/offchain/view'}>
-            View Public Version
-          </Button>
-          <Button variant="outline" onClick={() => window.location.href = '/publish'}>
-            Publish to IPFS
-          </Button>
           <Button onClick={download}>
             Download
           </Button>

@@ -9,7 +9,7 @@ interface AttestationQRCodeProps {
 }
 
 export function AttestationQRCode({ uid }: AttestationQRCodeProps) {
-  const [qrCodeUrl, setQrCodeUrl] = useState<string >()
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>()
   useEffect(() => {
     async function genQr() {
       const qrCode = await QRCode.toDataURL(window.location.href, {
@@ -21,7 +21,7 @@ export function AttestationQRCode({ uid }: AttestationQRCodeProps) {
     }
     genQr()
   }, [])
-	
+
   const downloadQRCode = () => {
     if (!qrCodeUrl)
       return

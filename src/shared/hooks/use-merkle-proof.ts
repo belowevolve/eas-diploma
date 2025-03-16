@@ -1,7 +1,6 @@
-import { MerkleMultiProof, MerkleValue, PrivateData } from '@ethereum-attestation-service/eas-sdk'
+import type { MerkleMultiProof, MerkleValue } from '@ethereum-attestation-service/eas-sdk'
+import { PrivateData } from '@ethereum-attestation-service/eas-sdk'
 import { useState } from 'react'
-
-
 
 interface UseMerkleProofResult {
   generateProof: (selectedFields: number[]) => MerkleMultiProof
@@ -20,7 +19,7 @@ export function useMerkleProof(merkle?: MerkleValue[]): UseMerkleProofResult {
     console.log('Generating proof for fields:', selectedFields, merkle)
     const privateData = new PrivateData(merkle)
     const multiProof = privateData.generateMultiProof(selectedFields)
-    
+
     setProofResult(multiProof)
     return multiProof
   }

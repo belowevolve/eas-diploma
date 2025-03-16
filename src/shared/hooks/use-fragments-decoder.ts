@@ -1,6 +1,5 @@
+import { decodeUriFragment } from '@/shared/utils/uri-fragment'
 import { decodeBase64ZippedBase64 } from '@ethereum-attestation-service/eas-sdk'
-import { Base64 } from 'js-base64'
-import { inflate } from 'pako'
 import { useEffect, useState } from 'react'
 
 export interface AttestationData {
@@ -58,20 +57,15 @@ export interface UseFragmentsDecoderResult {
  * @returns декодированные данные
  */
 function decodeFragmentData(fragmentType: FragmentType, encodedData: string): any {
-
   switch (fragmentType) {
     case 'attestation':
     case 'refAttestation':
-      return decodeBase64ZippedBase64(encodedData);
+      return decodeBase64ZippedBase64(encodedData)
     case 'proofs':
-      return decodeBase64ZippedBase64(encodedData);
     case 'merkle':
-      console.log('merkle', encodedData)
-      const fromBase64 = Base64.toUint8Array(encodedData);
-      const jsonStr = inflate(fromBase64, { to: 'string' });
-      return JSON.parse(jsonStr);
+      return decodeUriFragment(encodedData)
     default:
-      return null;
+      return null
   }
 }
 
@@ -96,59 +90,63 @@ export function useFragmentsDecoder(): UseFragmentsDecoderResult {
 
     try {
       // Получаем фрагмент URL
-      const urlFragment = window.location.hash
-      
+      const uriFragment = window.location.hash
+
       // Обрабатываем каждый тип фрагмента
       Object.entries(FRAGMENTS).forEach(([type, key]) => {
         const fragmentType = type as FragmentType
-        
+
         try {
-          if (!urlFragment.includes(key)) {
+          if (!uriFragment.includes(key)) {
             return // Пропускаем, если фрагмент не найден
           }
-          
+
           foundAny = true
-          
+
           // Извлекаем параметр из фрагмента
-          const parts = urlFragment.split(key)
+          const parts = uriFragment.split(key)
           if (parts.length < 2) {
-            throw new Error(`Некорректный формат URL с ${fragmentType}`);
+            throw new Error(`Некорректный формат URL с ${fragmentType}`)
           }
-          
+
           // Берем часть после key и до следующего & или конца строки
           let paramValue = parts[1]
           const nextParamIndex = paramValue.indexOf('&')
           if (nextParamIndex !== -1) {
             paramValue = paramValue.substring(0, nextParamIndex)
           }
-          
+
           // Декодируем параметр
           paramValue = decodeURIComponent(paramValue)
-          
+
           // Декодируем данные с учетом типа фрагмента
           const decodedData = decodeFragmentData(fragmentType, paramValue)
-          
+
           // Сохраняем данные
           newFragments[fragmentType] = decodedData
-        } catch (err) {
+        }
+        catch (err) {
           console.error(`Ошибка декодирования ${fragmentType}:`, err)
           // Сохраняем ошибку, но продолжаем обработку других фрагментов
           if (!errorMessage) {
-            errorMessage = (err as Error).message || `Произошла ошибка при загрузке ${fragmentType}`;
+            errorMessage = (err as Error).message || `Произошла ошибка при загрузке ${fragmentType}`
           }
           newFragments[fragmentType] = null
         }
       })
-      
+
       if (!foundAny) {
         setError('Не найдено ни одного фрагмента в URL')
-      } else {
+      }
+      else {
         setError(errorMessage) // Может быть null, если ошибок не было
       }
-    } catch (err) {
+    }
+    catch (err) {
       console.error('Ошибка при обработке URL:', err)
       setError((err as Error).message || 'Произошла ошибка при обработке URL')
-    } finally {
+    }
+    finally {
       setFragments(newFragments)
       setLoading(false)
     }

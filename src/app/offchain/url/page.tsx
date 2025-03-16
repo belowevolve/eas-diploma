@@ -1,5 +1,6 @@
 'use client'
 
+import type { MerkleMultiProof } from '@ethereum-attestation-service/eas-sdk'
 import { useFragmentsDecoder } from '@/shared/hooks/use-fragments-decoder'
 import { formatDate } from '@/shared/lib/utils'
 import { AttestationQRCode } from '@/shared/ui/attestation-qr-code'
@@ -7,19 +8,26 @@ import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/shared/ui/card'
 import { PageContainer } from '@/shared/ui/page-container'
 import { Text } from '@/shared/ui/text'
-import { useState } from 'react'
-import { MerkleMultiProof, PrivateData } from '@ethereum-attestation-service/eas-sdk'
 import { Textarea } from '@/shared/ui/textarea'
-import { error } from 'console'
-import { isValid } from 'zod'
+import { PrivateData } from '@ethereum-attestation-service/eas-sdk'
+import { useEffect, useState } from 'react'
 
 export default function OffchainAttestationPage() {
   const { fragments, loading, error } = useFragmentsDecoder()
+
   const [showRawData, setShowRawData] = useState(false)
   const [proofInput, setProofInput] = useState('')
-  const [verificationResult, setVerificationResult] = useState<{ isValid: boolean; message: string; proofData?: any[] } | null>(null)
+  const [verificationResult, setVerificationResult] = useState<{ isValid: boolean, message: string, proofData?: any[] } | null>(null)
   const attestation = fragments.attestation
-  
+  const proofs = fragments.proofs
+
+  useEffect(() => {
+    if (proofs) {
+      setProofInput(JSON.stringify(proofs, null, 2))
+      verifyProof(proofs)
+    }
+  }, [proofs])
+
   const download = () => {
     if (!attestation)
       return
@@ -37,39 +45,40 @@ export default function OffchainAttestationPage() {
     URL.revokeObjectURL(url)
   }
 
-  const verifyProof = () => {
-    if (!attestation || !proofInput.trim()) {
+  function verifyProof(proofs?: MerkleMultiProof) {
+    if (!attestation || (!proofs && !proofInput.trim())) {
       setVerificationResult({
         isValid: false,
-        message: 'Пожалуйста, введите корректный пруф для проверки'
+        message: 'Пожалуйста, введите корректный пруф для проверки',
       })
       return
     }
 
     try {
       // Parse the proof input
-      const parsedProof = JSON.parse(proofInput)
-      
+      const parsedProof = proofInput ? JSON.parse(proofInput) : proofs
+      console.log('parsedProof', parsedProof, proofInput, proofs)
+
       // Get the merkle root from the attestation data
       const merkleRoot = attestation.sig.message.data
-      
+
       // Verify the proof
       const isValid = PrivateData.verifyMultiProof(merkleRoot, parsedProof as MerkleMultiProof)
       console.log('merkleRoot', merkleRoot, parsedProof.leaves, isValid)
-      
-   
+
       setVerificationResult({
         isValid,
-        message: isValid 
-          ? 'Доказательство подтверждено! Лист найден в дереве Меркла.' 
+        message: isValid
+          ? 'Доказательство подтверждено! Лист найден в дереве Меркла.'
           : 'Недействительное доказательство. Лист не найден в дереве Меркла.',
-        proofData: isValid ? parsedProof.leaves : undefined
+        proofData: isValid ? parsedProof.leaves : undefined,
       })
-    } catch (err) {
+    }
+    catch (err) {
       console.error('Error verifying proof:', err)
       setVerificationResult({
         isValid: false,
-        message: `Ошибка проверки доказательства: ${(err as Error).message || 'Неверный формат доказательства'}`
+        message: `Ошибка проверки доказательства: ${(err as Error).message || 'Неверный формат доказательства'}`,
       })
     }
   }
@@ -213,40 +222,42 @@ export default function OffchainAttestationPage() {
           <div>
             <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-2">ПРОВЕРКА доказательства</Text>
             <Text className="text-sm text-gray-600 mb-2">
-              Импортируйте доказательство или вставьте его ниже для проверки против корня Меркла.
+              Импортируйте доказательство или вставьте его ниже для проверки корня Меркла.
             </Text>
-            <Textarea 
+            <Textarea
               className="min-h-32 font-mono text-sm"
-              placeholder="Вставьте пруф здесь (формат JSON)"
+              placeholder="Вставьте доказательство здесь (формат JSON)"
               value={proofInput}
-              onChange={(e) => setProofInput(e.target.value)}
+              onChange={e => setProofInput(e.target.value)}
             />
             <div className="flex justify-end mt-2">
-              <Button variant="outline" className="ml-auto" onClick={verifyProof}>
+              <Button variant="outline" className="ml-auto" onClick={() => verifyProof()}>
                 Проверить доказательство
               </Button>
             </div>
-            
+
             {verificationResult && (
               <div className={`mt-4 p-4 rounded-md ${verificationResult.isValid ? 'bg-green-100' : 'bg-red-100'}`}>
                 <div className="flex items-center">
-                  {verificationResult.isValid ? (
-                    <div className="flex items-center text-green-700">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <Text className="font-medium">{verificationResult.message}</Text>
-                    </div>
-                  ) : (
-                    <div className="flex items-center text-red-700">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      <Text className="font-medium">{verificationResult.message}</Text>
-                    </div>
-                  )}
+                  {verificationResult.isValid
+                    ? (
+                        <div className="flex items-center text-green-700">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <Text className="font-medium">{verificationResult.message}</Text>
+                        </div>
+                      )
+                    : (
+                        <div className="flex items-center text-red-700">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          <Text className="font-medium">{verificationResult.message}</Text>
+                        </div>
+                      )}
                 </div>
-                
+
                 {verificationResult.isValid && verificationResult.proofData && (
                   <div className="mt-4">
                     <Text className="font-medium text-green-700 mb-2">Расшифрованные данные из доказательства:</Text>
@@ -299,7 +310,7 @@ export default function OffchainAttestationPage() {
         </CardContent>
 
         <CardFooter className="flex justify-end space-x-4 mt-6">
-          
+
           <Button onClick={download}>
             Скачать
           </Button>

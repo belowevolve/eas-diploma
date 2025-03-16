@@ -2,9 +2,8 @@ import type { MerkleValue } from '@ethereum-attestation-service/eas-sdk'
 import type { AttestationRecord } from './use-attestation-file-upload'
 import { env } from '@/env'
 import { eas } from '@/shared/lib/eas'
+import { encodeUriFragment } from '@/shared/utils/uri-fragment'
 import { zipAndEncodeToBase64 } from '@ethereum-attestation-service/eas-sdk'
-import { Base64 } from 'js-base64'
-import { deflate } from 'pako'
 import QRCode from 'qrcode'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -18,11 +17,6 @@ export interface AttestationResult {
   recipient: string
   fio: string
   qrCode: string
-  // merkleData: {
-  //   relatedUid: string
-  //   root: string
-  //   values: MerkleValue[]
-  // }
   url: string
   privateUrl: string
 }
@@ -159,11 +153,9 @@ export function useAttestationCreation() {
                 values: request.merkle.values,
               }
 
-              const qrCode = await generateQRCode(merkleData)
-              const jsoned = JSON.stringify(merkleData, (_, value) => (typeof value === 'bigint' ? value.toString() : value))
-              const gzipped = deflate(jsoned, { level: 9 })
-              const merkleEncoded = Base64.fromUint8Array(gzipped)
               // Generate QR code with the merkle data
+              const qrCode = await generateQRCode(merkleData)
+              const merkleEncoded = encodeUriFragment(merkleData)
 
               return {
                 uid: offchainAttestation.uid,
