@@ -109,8 +109,7 @@ export function useAttestationCreation() {
           time: BigInt(Math.floor(Date.now() / 1000)),
           refUID: zeroHash,
           schema: env.NEXT_PUBLIC_DIPLOMA_SCHEMA_UID,
-          merkleValues: merkle,
-          merkleRoot: fullTree.root,
+          merkle: fullTree,
           record,
         }
       }))
@@ -156,8 +155,8 @@ export function useAttestationCreation() {
               // Create the merkle data object for QR code
               const merkleData = {
                 relatedUid: offchainAttestation.uid,
-                root: request.merkleRoot,
-                values: request.merkleValues,
+                root: request.merkle.root,
+                values: request.merkle.values,
               }
 
               const qrCode = await generateQRCode(merkleData)

@@ -1,119 +1,25 @@
 'use client'
 
+import { useFragmentsDecoder } from '@/shared/hooks/use-fragments-decoder'
 import { formatDate } from '@/shared/lib/utils'
+import { AttestationQRCode } from '@/shared/ui/attestation-qr-code'
 import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/shared/ui/card'
 import { PageContainer } from '@/shared/ui/page-container'
 import { Text } from '@/shared/ui/text'
-import { decodeBase64ZippedBase64 } from '@ethereum-attestation-service/eas-sdk'
-import QRCode from 'qrcode'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
-
-// Updated interface to handle bigint chainId
-interface AttestationData {
-  sig: {
-    domain: {
-      name: string
-      version: string
-      chainId: bigint | number
-      verifyingContract: string
-    }
-    primaryType: string
-    types: Record<string, any>
-    message: {
-      schema: string
-      recipient: string
-      time: number
-      expirationTime: number
-      revocable: boolean
-      refUID: string
-      data: string
-      nonce: number
-    }
-    uid: string
-    signature: string
-  }
-  signer: string
-}
+import { useState } from 'react'
+import { MerkleMultiProof, PrivateData } from '@ethereum-attestation-service/eas-sdk'
+import { Textarea } from '@/shared/ui/textarea'
+import { error } from 'console'
+import { isValid } from 'zod'
 
 export default function OffchainAttestationPage() {
-  const [attestation, setAttestation] = useState<AttestationData | null>(null)
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { fragments, loading, error } = useFragmentsDecoder()
   const [showRawData, setShowRawData] = useState(false)
-
-  useEffect(() => {
-    const decodeAttestationFromUrl = async () => {
-      try {
-        setLoading(true)
-
-        // Get the URL fragment
-        const fragment = window.location.hash
-        if (!fragment || !fragment.includes('attestation=')) {
-          throw new Error('Аттестация не найдена в URL')
-        }
-        console.log(fragment)
-        const attestationParam = decodeURIComponent(fragment.split('attestation=')[1])
-        console.log(attestationParam)
-        // Extract the attestation data from the fragment
-        const attestation = decodeBase64ZippedBase64(attestationParam)
-        console.log('attestation', attestation)
-        if (!attestation) {
-          throw new Error('Некорректный формат аттестации')
-        }
-
-        try {
-          // Type assertion to handle the bigint chainId
-          setAttestation(attestation as unknown as AttestationData)
-
-          // Generate QR code for the attestation URL
-          const qrCode = await QRCode.toDataURL(window.location.href, {
-            errorCorrectionLevel: 'M',
-            margin: 1,
-            width: 200,
-          })
-          setQrCodeUrl(qrCode)
-          setLoading(false)
-        }
-        catch (parseError) {
-          console.error('Error parsing attestation data:', parseError)
-          throw new Error('Некорректный формат данных аттестации')
-        }
-      }
-      catch (err) {
-        console.error('Error decoding attestation:', err)
-        setError((err as Error).message || 'Произошла ошибка при загрузке аттестации')
-        setLoading(false)
-      }
-    }
-
-    if (typeof window !== 'undefined') {
-      decodeAttestationFromUrl()
-    }
-  }, [])
-
-  const downloadQRCode = () => {
-    if (!qrCodeUrl)
-      return
-
-    const link = document.createElement('a')
-    link.href = qrCodeUrl
-    link.download = `attestation-${attestation?.sig?.uid || 'unknown'}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href)
-      .then(() => {
-        toast.success('Ссылка скопирована в буфер обмена')
-      })
-      .catch(err => console.error('Не удалось скопировать ссылку:', err))
-  }
-
+  const [proofInput, setProofInput] = useState('')
+  const [verificationResult, setVerificationResult] = useState<{ isValid: boolean; message: string; proofData?: any[] } | null>(null)
+  const attestation = fragments.attestation
+  
   const download = () => {
     if (!attestation)
       return
@@ -129,6 +35,43 @@ export default function OffchainAttestationPage() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
+  }
+
+  const verifyProof = () => {
+    if (!attestation || !proofInput.trim()) {
+      setVerificationResult({
+        isValid: false,
+        message: 'Пожалуйста, введите корректный пруф для проверки'
+      })
+      return
+    }
+
+    try {
+      // Parse the proof input
+      const parsedProof = JSON.parse(proofInput)
+      
+      // Get the merkle root from the attestation data
+      const merkleRoot = attestation.sig.message.data
+      
+      // Verify the proof
+      const isValid = PrivateData.verifyMultiProof(merkleRoot, parsedProof as MerkleMultiProof)
+      console.log('merkleRoot', merkleRoot, parsedProof.leaves, isValid)
+      
+   
+      setVerificationResult({
+        isValid,
+        message: isValid 
+          ? 'Доказательство подтверждено! Лист найден в дереве Меркла.' 
+          : 'Недействительное доказательство. Лист не найден в дереве Меркла.',
+        proofData: isValid ? parsedProof.leaves : undefined
+      })
+    } catch (err) {
+      console.error('Error verifying proof:', err)
+      setVerificationResult({
+        isValid: false,
+        message: `Ошибка проверки доказательства: ${(err as Error).message || 'Неверный формат доказательства'}`
+      })
+    }
   }
 
   if (loading) {
@@ -177,7 +120,7 @@ export default function OffchainAttestationPage() {
             </CardTitle>
           </div>
           <div className="mt-4 md:mt-0">
-            <img src={qrCodeUrl} alt="QR Code" className="w-32 h-32" />
+            <AttestationQRCode uid={attestation.sig.uid} />
           </div>
         </CardHeader>
 
@@ -189,13 +132,13 @@ export default function OffchainAttestationPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-4">SCHEMA:</Text>
+              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-4">СХЕМА:</Text>
               <div className="flex items-center bg-blue-100 p-3 rounded-md">
                 <div className="bg-blue-300 text-blue-800 font-bold rounded px-3 py-1 mr-3">
                   #43
                 </div>
                 <div>
-                  <Text className="font-medium">PRIVATE DATA</Text>
+                  <Text className="font-medium">ПРИВАТНЫЕ ДАННЫЕ</Text>
                   <Text className="text-sm font-mono text-gray-600">
                     {attestation.sig.message.schema.substring(0, 10)}
                     ...
@@ -207,29 +150,29 @@ export default function OffchainAttestationPage() {
 
             <div className="space-y-4">
               <div>
-                <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">TIMESTAMPS:</Text>
+                <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">ВРЕМЕННЫЕ МЕТКИ:</Text>
                 <Text className="font-medium">
-                  Created:
+                  Создано:
                   {' '}
                   {formatDate(new Date(Number(attestation.sig.message.time) * 1000))}
                 </Text>
                 <Text className="text-sm text-blue-600 hover:underline cursor-pointer">
-                  Timestamp onchain
+                  Временная метка в блокчейне
                 </Text>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">EXPIRATION:</Text>
+                  <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">СРОК ДЕЙСТВИЯ:</Text>
                   <Text className="font-medium">
                     {attestation.sig.message.expirationTime > 0
                       ? formatDate(new Date(attestation.sig.message.expirationTime * 1000))
-                      : 'Never'}
+                      : 'Бессрочно'}
                   </Text>
                 </div>
                 <div>
-                  <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">REVOKED:</Text>
-                  <Text className="font-medium">No</Text>
+                  <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">ОТОЗВАНО:</Text>
+                  <Text className="font-medium">Нет</Text>
                 </div>
               </div>
             </div>
@@ -237,28 +180,28 @@ export default function OffchainAttestationPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">FROM:</Text>
+              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">ОТ:</Text>
               <Text className="font-mono break-all">{attestation.signer}</Text>
             </div>
             <div>
-              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">TO:</Text>
+              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">КОМУ:</Text>
               <Text className="font-medium">
                 {attestation.sig.message.recipient === '0x0000000000000000000000000000000000000000'
-                  ? 'No recipient'
+                  ? 'Нет получателя'
                   : attestation.sig.message.recipient}
               </Text>
             </div>
           </div>
 
           <div>
-            <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-4">DECODED DATA:</Text>
+            <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-4">ДЕКОДИРОВАННЫЕ ДАННЫЕ:</Text>
             <div className="bg-gray-50 rounded-md p-4">
               <div className="flex mb-2">
                 <div className="bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded">
                   BYTES32
                 </div>
                 <div className="ml-2 bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded">
-                  Private Data
+                  Приватные данные
                 </div>
               </div>
               <Text className="font-mono text-sm break-all">
@@ -268,23 +211,72 @@ export default function OffchainAttestationPage() {
           </div>
 
           <div>
-            <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-2">VERIFY PROOF</Text>
+            <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-2">ПРОВЕРКА доказательства</Text>
             <Text className="text-sm text-gray-600 mb-2">
-              Import a proof or paste it below to verify it against the merkle root.
+              Импортируйте доказательство или вставьте его ниже для проверки против корня Меркла.
             </Text>
-            <div className="bg-gray-50 rounded-md p-4 h-32">
-              <Text className="text-gray-400">Paste proof here</Text>
-            </div>
+            <Textarea 
+              className="min-h-32 font-mono text-sm"
+              placeholder="Вставьте пруф здесь (формат JSON)"
+              value={proofInput}
+              onChange={(e) => setProofInput(e.target.value)}
+            />
             <div className="flex justify-end mt-2">
-              <Button variant="outline" className="ml-auto">
-                Verify Proof
+              <Button variant="outline" className="ml-auto" onClick={verifyProof}>
+                Проверить доказательство
               </Button>
             </div>
+            
+            {verificationResult && (
+              <div className={`mt-4 p-4 rounded-md ${verificationResult.isValid ? 'bg-green-100' : 'bg-red-100'}`}>
+                <div className="flex items-center">
+                  {verificationResult.isValid ? (
+                    <div className="flex items-center text-green-700">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <Text className="font-medium">{verificationResult.message}</Text>
+                    </div>
+                  ) : (
+                    <div className="flex items-center text-red-700">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <Text className="font-medium">{verificationResult.message}</Text>
+                    </div>
+                  )}
+                </div>
+                
+                {verificationResult.isValid && verificationResult.proofData && (
+                  <div className="mt-4">
+                    <Text className="font-medium text-green-700 mb-2">Расшифрованные данные из доказательства:</Text>
+                    <div className="bg-white rounded-md p-3 border border-green-200">
+                      <table className="w-full">
+                        <thead className="bg-green-50">
+                          <tr>
+                            <th className="p-2 text-left text-green-800">Имя</th>
+                            <th className="p-2 text-left text-green-800">Значение</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {verificationResult.proofData.map((item, index) => (
+                            <tr key={index} className="border-t border-green-100">
+                              <td className="p-2 font-medium">{item.name || `Поле ${index + 1}`}</td>
+                              <td className="p-2">{item.value?.toString() || 'Н/Д'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
-            <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-2">REFERENCED ATTESTATION:</Text>
-            <Text>No reference</Text>
+            <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-2">СВЯЗАННАЯ АТТЕСТАЦИЯ:</Text>
+            <Text>Нет ссылок</Text>
           </div>
 
           <div>
@@ -292,7 +284,7 @@ export default function OffchainAttestationPage() {
               className="text-blue-600 hover:underline cursor-pointer"
               onClick={() => setShowRawData(!showRawData)}
             >
-              {showRawData ? 'Hide raw data' : 'Show raw data'}
+              {showRawData ? 'Скрыть исходные данные' : 'Показать исходные данные'}
             </Text>
 
             {showRawData && (
@@ -307,14 +299,9 @@ export default function OffchainAttestationPage() {
         </CardContent>
 
         <CardFooter className="flex justify-end space-x-4 mt-6">
-          <Button variant="outline" onClick={downloadQRCode}>
-            Download QR
-          </Button>
-          <Button variant="outline" onClick={copyLink}>
-            Copy Link
-          </Button>
+          
           <Button onClick={download}>
-            Download
+            Скачать
           </Button>
         </CardFooter>
       </Card>

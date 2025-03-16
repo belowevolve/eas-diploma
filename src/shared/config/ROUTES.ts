@@ -14,7 +14,7 @@ export const routes = {
   createMultiple: BASE_ROUTES.CREATE_MULTIPLE,
   offchainView: (params: { attestation: string, proofs?: string, refAttestation?: string }) => {
     const { attestation, proofs, refAttestation } = params
-    let url = `${BASE_ROUTES.OFFCHAIN}/view/#${FRAGMENTS.attestation}${encodeURIComponent(attestation)}`
+    let url = `${BASE_ROUTES.OFFCHAIN}/url/#${FRAGMENTS.attestation}${encodeURIComponent(attestation)}`
 
     if (proofs)
       url += `&${FRAGMENTS.proofs}${encodeURIComponent(proofs)}`

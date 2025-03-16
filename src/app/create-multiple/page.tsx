@@ -5,10 +5,10 @@ import { Button } from '@/shared/ui/button'
 import { PageContainer } from '@/shared/ui/page-container'
 import { Text } from '@/shared/ui/text'
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react'
-import { AttestationResults } from './components/attestation-results'
-import { FileUploadSection } from './components/file-upload-section'
-import { ProcessingIndicator } from './components/processing-indicator'
-import { RecordsTable } from './components/records-table'
+import { AttestationResults } from './ui/attestation-results'
+import { FileUploadSection } from './ui/file-upload-section'
+import { ProcessingIndicator } from './ui/processing-indicator'
+import { RecordsTable } from './ui/records-table'
 
 export default function Page() {
   const { address } = useAppKitAccount()
