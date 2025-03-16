@@ -47,6 +47,14 @@ export function AttestationResults({ results, onDownloadQRCode }: AttestationRes
               >
                 <Link href={result.url}>Просмотр аттестата</Link>
               </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                <Link href={result.privateUrl}>Приватная ссылка на аттестат</Link>
+              </Button>
             </div>
           </div>
         ))}

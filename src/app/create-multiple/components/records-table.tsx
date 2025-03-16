@@ -39,7 +39,7 @@ export function RecordsTable({ records }: RecordsTableProps) {
                 <td className="px-3 py-2 whitespace-nowrap text-sm">{record.degree}</td>
                 <td className="px-3 py-2 whitespace-nowrap text-sm">{record.faculty}</td>
                 <td className="px-3 py-2 whitespace-nowrap text-sm">{record.program}</td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm font-mono text-xs">{record.to}</td>
+                <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{record.to}</td>
               </tr>
             ))}
           </tbody>

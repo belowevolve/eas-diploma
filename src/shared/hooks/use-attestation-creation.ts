@@ -2,10 +2,14 @@ import type { MerkleValue } from '@ethereum-attestation-service/eas-sdk'
 import type { AttestationRecord } from './use-attestation-file-upload'
 import { env } from '@/env'
 import { eas } from '@/shared/lib/eas'
-import { createOffchainURL } from '@ethereum-attestation-service/eas-sdk'
+import { zipAndEncodeToBase64 } from '@ethereum-attestation-service/eas-sdk'
+import { Base64 } from 'js-base64'
+import { deflate } from 'pako'
 import QRCode from 'qrcode'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { zeroHash } from 'viem'
+import { routes } from '../config/ROUTES'
 import { useSigner } from './use-signer'
 
 // Define the structure for attestation result with QR code
@@ -14,12 +18,13 @@ export interface AttestationResult {
   recipient: string
   fio: string
   qrCode: string
-  merkleData: {
-    relatedUid: string
-    root: string
-    values: MerkleValue[]
-  }
+  // merkleData: {
+  //   relatedUid: string
+  //   root: string
+  //   values: MerkleValue[]
+  // }
   url: string
+  privateUrl: string
 }
 
 export function useAttestationCreation() {
@@ -102,7 +107,7 @@ export function useAttestationCreation() {
           revocable: true,
           data: encodedData,
           time: BigInt(Math.floor(Date.now() / 1000)),
-          refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+          refUID: zeroHash,
           schema: env.NEXT_PUBLIC_DIPLOMA_SCHEMA_UID,
           merkleValues: merkle,
           merkleRoot: fullTree.root,
@@ -127,7 +132,7 @@ export function useAttestationCreation() {
         const batchRequests = attestationRequests.slice(start, end)
 
         // Process each attestation in the current batch
-        const batchResults = await Promise.allSettled(
+        const batchResults: PromiseSettledResult<AttestationResult>[] = await Promise.allSettled(
           batchRequests.map(async (request, index) => {
             try {
               const offchainAttestation = await offChain.signOffchainAttestation(
@@ -143,7 +148,7 @@ export function useAttestationCreation() {
                 signer,
               )
 
-              const url = createOffchainURL({
+              const attestationEncoded = zipAndEncodeToBase64({
                 sig: offchainAttestation,
                 signer: address,
               })
@@ -155,16 +160,19 @@ export function useAttestationCreation() {
                 values: request.merkleValues,
               }
 
-              // Generate QR code with the merkle data
               const qrCode = await generateQRCode(merkleData)
+              const jsoned = JSON.stringify(merkleData, (_, value) => (typeof value === 'bigint' ? value.toString() : value))
+              const gzipped = deflate(jsoned, { level: 9 })
+              const merkleEncoded = Base64.fromUint8Array(gzipped)
+              // Generate QR code with the merkle data
 
               return {
                 uid: offchainAttestation.uid,
                 recipient: request.recipient,
                 fio: request.record.fio,
                 qrCode,
-                merkleData,
-                url,
+                privateUrl: routes.offchainPrivate({ attestation: attestationEncoded, merkle: merkleEncoded }),
+                url: routes.offchainView({ attestation: attestationEncoded }),
               }
             }
             catch (error) {
