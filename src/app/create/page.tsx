@@ -2,7 +2,7 @@
 import type { MerkleValue } from '@ethereum-attestation-service/eas-sdk'
 import type { FormSchema } from './model'
 import { env } from '@/env'
-import { useSigner } from '@/shared/hooks/useSigner'
+import { useSigner } from '@/shared/hooks/use-signer'
 import { eas } from '@/shared/lib/eas'
 import { Button } from '@/shared/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form'
