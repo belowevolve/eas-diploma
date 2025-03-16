@@ -1,5 +1,4 @@
 import type { MerkleMultiProof, MerkleValue } from '@ethereum-attestation-service/eas-sdk'
-import { setTimeout } from 'node:timers'
 import { FRAGMENTS, routes } from '@/shared/config/ROUTES'
 import { Button } from '@/shared/ui/button'
 import { Checkbox } from '@/shared/ui/checkbox'
