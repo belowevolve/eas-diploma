@@ -1,3 +1,5 @@
+import type { AttestationShareablePackageObject, FullMerkleDataTree, MerkleMultiProof } from '@ethereum-attestation-service/eas-sdk'
+import { error } from 'node:console'
 import { decodeUriFragment } from '@/shared/utils/uri-fragment'
 import { decodeBase64ZippedBase64 } from '@ethereum-attestation-service/eas-sdk'
 import { useEffect, useState } from 'react'
@@ -38,35 +40,16 @@ export const FRAGMENTS = {
 export type FragmentType = keyof typeof FRAGMENTS
 
 export interface FragmentsData {
-  attestation: any | null
-  proofs: any | null
-  merkle: any | null
-  refAttestation: any | null
+  attestation: AttestationShareablePackageObject | null
+  proofs: MerkleMultiProof | null
+  merkle: FullMerkleDataTree | null
+  refAttestation: AttestationShareablePackageObject | null
 }
 
 export interface UseFragmentsDecoderResult {
   fragments: FragmentsData
   loading: boolean
   error: string | null
-}
-
-/**
- * Декодирует фрагмент URL в зависимости от его типа
- * @param fragmentType - тип фрагмента
- * @param encodedData - закодированные данные
- * @returns декодированные данные
- */
-function decodeFragmentData(fragmentType: FragmentType, encodedData: string): any {
-  switch (fragmentType) {
-    case 'attestation':
-    case 'refAttestation':
-      return decodeBase64ZippedBase64(encodedData)
-    case 'proofs':
-    case 'merkle':
-      return decodeUriFragment(encodedData)
-    default:
-      return null
-  }
 }
 
 /**
@@ -119,11 +102,18 @@ export function useFragmentsDecoder(): UseFragmentsDecoderResult {
           // Декодируем параметр
           paramValue = decodeURIComponent(paramValue)
 
-          // Декодируем данные с учетом типа фрагмента
-          const decodedData = decodeFragmentData(fragmentType, paramValue)
-
-          // Сохраняем данные
-          newFragments[fragmentType] = decodedData
+          switch (fragmentType) {
+            case 'attestation':
+            case 'refAttestation':
+              newFragments[fragmentType] = decodeBase64ZippedBase64(paramValue)
+              break
+            case 'merkle':
+              newFragments[fragmentType] = decodeUriFragment<FullMerkleDataTree>(paramValue)
+              break
+            case 'proofs':
+              newFragments[fragmentType] = decodeUriFragment<MerkleMultiProof>(paramValue)
+              break
+          }
         }
         catch (err) {
           console.error(`Ошибка декодирования ${fragmentType}:`, err)

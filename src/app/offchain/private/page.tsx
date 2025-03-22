@@ -1,7 +1,6 @@
 'use client'
 
 import { PrivateDataProof } from '@/app/offchain/private/ui/private-data-proof'
-import { useFragmentsDecoder } from '@/shared/hooks/use-fragments-decoder'
 import { useMerkleProof } from '@/shared/hooks/use-merkle-proof'
 import { formatDate } from '@/shared/lib/utils'
 import { AttestationQRCode } from '@/shared/ui/attestation-qr-code'
@@ -10,11 +9,10 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/shared/u
 import { PageContainer } from '@/shared/ui/page-container'
 import { Text } from '@/shared/ui/text'
 import { useState } from 'react'
+import { useFragments } from '../fragments-context'
 
 export default function PrivateAttestationPage() {
-  const { fragments, loading, error } = useFragmentsDecoder()
-  const attestation = fragments.attestation
-  const merkle = fragments.merkle
+  const { attestation, merkle } = useFragments()
   const [showRawData, setShowRawData] = useState(false)
 
   const { generateProof, proofResult } = useMerkleProof(merkle?.values)
@@ -36,39 +34,6 @@ export default function PrivateAttestationPage() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-  }
-
-  if (loading) {
-    return (
-      <PageContainer>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <Text>Загрузка аттестации...</Text>
-        </div>
-      </PageContainer>
-    )
-  }
-
-  if (error) {
-    return (
-      <PageContainer>
-        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-          <Text variant="h3" className="text-red-500">Ошибка</Text>
-          <Text>{error}</Text>
-          <Button onClick={() => window.history.back()}>Вернуться назад</Button>
-        </div>
-      </PageContainer>
-    )
-  }
-
-  if (!attestation) {
-    return (
-      <PageContainer>
-        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-          <Text variant="h3" className="text-red-500">Аттестация не найдена</Text>
-          <Button onClick={() => window.history.back()}>Вернуться назад</Button>
-        </div>
-      </PageContainer>
-    )
   }
 
   return (
@@ -130,7 +95,7 @@ export default function PrivateAttestationPage() {
                   <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">Дата экспирации:</Text>
                   <Text className="font-medium">
                     {attestation.sig.message.expirationTime > 0
-                      ? formatDate(new Date(attestation.sig.message.expirationTime * 1000))
+                      ? formatDate(new Date(Number(attestation.sig.message.expirationTime) * 1000))
                       : 'Never'}
                   </Text>
                 </div>
