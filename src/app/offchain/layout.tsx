@@ -10,13 +10,13 @@ import { FragmentsContext } from './fragments-context'
 
 export default function OffchainLayout({ children }: { children: React.ReactNode }) {
   const { fragments, loading, error } = useFragmentsDecoder()
-  const { revokeTimestamp, queryKey, isPending: attestationValidationLoading, error: attestationValidationError } = useAttestationValidity( fragments.attestation)
+  const { revoke, isPending: attestationValidationLoading, error: attestationValidationError } = useAttestationValidity(fragments.attestation)
 
   const contextValue: FragmentsContextValue | null = useMemo(() => {
     return fragments.attestation
-      ? { ...fragments, attestation: { ...fragments.attestation, revokeTimestamp, queryKey } }
+      ? { ...fragments, attestation: { ...fragments.attestation, revoke } }
       : null
-  }, [fragments, revokeTimestamp, queryKey])
+  }, [fragments, revoke])
 
   if (loading || attestationValidationLoading) {
     return (

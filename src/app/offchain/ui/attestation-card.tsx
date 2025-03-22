@@ -13,6 +13,8 @@ import { Revoke } from './revoke'
 
 export function AttestationCard({ attestation }: { attestation: EASAttestation }) {
   const isValidAttestation = verifyOffchainAttestation(attestation)
+  const revokeTimestamp = attestation.revoke.timestamp
+  const isRevoked = revokeTimestamp !== 0
   const [showRawData, setShowRawData] = useState(false)
 
   const download = () => {
@@ -33,11 +35,11 @@ export function AttestationCard({ attestation }: { attestation: EASAttestation }
     <Card className="max-w-4xl mx-auto">
 
       <CardHeader className="border-b max-md:flex max-md:flex-col ">
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
           <CardTitle className="flex items-center text-2xl">
             Оффчейн аттестация
-            <span className={cn('ml-4 px-3 py-1 text-white text-sm rounded-md', isValidAttestation && attestation.revokeTimestamp === 0 ? 'bg-green-500' : 'bg-red-500')}>
-              {isValidAttestation && attestation.revokeTimestamp === 0 ? 'Действительная' : 'Недействительная'}
+            <span className={cn('ml-4 px-3 py-1 text-white text-sm rounded-md', isValidAttestation && !isRevoked ? 'bg-green-500' : 'bg-red-500')}>
+              {isValidAttestation && !isRevoked ? 'Действительная' : 'Недействительная'}
             </span>
           </CardTitle>
           <div>
@@ -61,21 +63,22 @@ export function AttestationCard({ attestation }: { attestation: EASAttestation }
               </Text>
             </div>
           </div>
-          <div className='flex items-center gap-1'>
+          <div className="flex items-center gap-1">
             <CardDescription>Аттестация отозвана:</CardDescription>
             <Text className="font-medium text-sm flex items-center gap-2">
-              {attestation.revokeTimestamp === 0 
-                ? 
+              {isRevoked
+                ? (
+                    <span className="text-destructive">
+                      {formatDate(new Date(Number(revokeTimestamp) * 1000))}
+                    </span>
+                  )
+
+                : (
                     <>
                       Нет
                       <Revoke attestation={attestation} />
                     </>
-                  
-                : 
-                    <span className='text-destructive'>
-                      {formatDate(new Date(Number(attestation.revokeTimestamp) * 1000))}
-                    </span>
-                  }
+                  )}
             </Text>
           </div>
         </div>

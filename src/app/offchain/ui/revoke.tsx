@@ -4,9 +4,9 @@ import { eas } from '@/shared/lib/eas'
 import { Button } from '@/shared/ui/button'
 import { tryCatch } from '@/shared/utils/try-catch'
 import { useAppKitAccount } from '@reown/appkit/react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { useQueryClient } from '@tanstack/react-query'
 
 export function Revoke({ attestation }: { attestation: EASAttestation }) {
   const { address } = useAppKitAccount()
@@ -24,9 +24,7 @@ export function Revoke({ attestation }: { attestation: EASAttestation }) {
     const toastId = toast.loading('Отзываем аттестацию...')
     const result = await tryCatch<bigint, { reason: 'rejected' }>(transaction.wait())
     setIsRevoking(false)
-    console.log(attestation.queryKey)
     if (result.error) {
-      
       if (result.error.reason === 'rejected') {
         toast.dismiss(toastId)
         return
@@ -35,7 +33,7 @@ export function Revoke({ attestation }: { attestation: EASAttestation }) {
       return
     }
     toast.success('Аттестация отозвана', { id: toastId })
-    qc.invalidateQueries({ queryKey: attestation.queryKey })
+    qc.invalidateQueries({ queryKey: attestation.revoke.queryKey })
   }
 
   if (address !== attestation.signer)
