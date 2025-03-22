@@ -77,9 +77,9 @@ export default function PrivateAttestationPage() {
         <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center pb-4 border-b">
           <div>
             <CardTitle className="flex items-center text-2xl">
-              Offchain Attestation
+              Оффчейн аттестация
               <span className="ml-4 px-3 py-1 bg-orange-500 text-white text-sm rounded-md">
-                Private
+                Приватная страница
               </span>
             </CardTitle>
           </div>
@@ -96,13 +96,13 @@ export default function PrivateAttestationPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-4">SCHEMA:</Text>
+              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-4">СХЕМА:</Text>
               <div className="flex items-center bg-blue-100 p-3 rounded-md">
                 <div className="bg-blue-300 text-blue-800 font-bold rounded px-3 py-1 mr-3">
-                  #43
+                  #1
                 </div>
                 <div>
-                  <Text className="font-medium">PRIVATE DATA</Text>
+                  <Text className="font-medium">ПРИВАТНЫЕ ДАННЫЕ</Text>
                   <Text className="text-sm font-mono text-gray-600">
                     {attestation.sig.message.schema.substring(0, 10)}
                     ...
@@ -114,20 +114,20 @@ export default function PrivateAttestationPage() {
 
             <div className="space-y-4">
               <div>
-                <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">TIMESTAMPS:</Text>
+                <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">ВРЕМЕННЫЕ МЕТКИ:</Text>
                 <Text className="font-medium">
-                  Created:
+                  Создано:
                   {' '}
                   {formatDate(new Date(Number(attestation.sig.message.time) * 1000))}
                 </Text>
                 <Text className="text-sm text-blue-600 hover:underline cursor-pointer">
-                  Timestamp onchain
+                  Временная метка в блокчейне
                 </Text>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">EXPIRATION:</Text>
+                  <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">Дата экспирации:</Text>
                   <Text className="font-medium">
                     {attestation.sig.message.expirationTime > 0
                       ? formatDate(new Date(attestation.sig.message.expirationTime * 1000))
@@ -135,11 +135,11 @@ export default function PrivateAttestationPage() {
                   </Text>
                 </div>
                 <div>
-                  <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">REVOKED:</Text>
+                  <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">ОТОЗВАНО:</Text>
                   <Text className="font-medium">
-                    No
+                    Нет
                     {' '}
-                    <span className="text-blue-600 hover:underline">[Revoke now]</span>
+                    <span className="text-blue-600 hover:underline">[Отозвать]</span>
                   </Text>
                 </div>
               </div>
@@ -148,28 +148,28 @@ export default function PrivateAttestationPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">FROM:</Text>
+              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">От:</Text>
               <Text className="font-mono break-all">{attestation.signer}</Text>
             </div>
             <div>
-              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">TO:</Text>
+              <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-1">Кому:</Text>
               <Text className="font-medium">
                 {attestation.sig.message.recipient === '0x0000000000000000000000000000000000000000'
-                  ? 'No recipient'
+                  ? 'Нет получателя'
                   : attestation.sig.message.recipient}
               </Text>
             </div>
           </div>
 
           <div>
-            <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-4">DECODED DATA:</Text>
+            <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-4">ДЕКОДИРОВАННЫЕ ДАННЫЕ:</Text>
             <div className="bg-gray-50 rounded-md p-4">
               <div className="flex mb-2">
                 <div className="bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded">
                   BYTES32
                 </div>
                 <div className="ml-2 bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded">
-                  Private Data
+                  Приватные данные
                 </div>
               </div>
               <Text className="font-mono text-sm break-all">
@@ -189,7 +189,7 @@ export default function PrivateAttestationPage() {
               className="text-blue-600 hover:underline cursor-pointer"
               onClick={() => setShowRawData(!showRawData)}
             >
-              {showRawData ? 'Hide raw data' : 'Show raw data'}
+              {showRawData ? 'Скрыть исходные данные' : 'Показать исходные данные'}
             </Text>
 
             {showRawData && (
@@ -205,7 +205,7 @@ export default function PrivateAttestationPage() {
 
         <CardFooter className="flex justify-end space-x-4 mt-6">
           <Button onClick={download}>
-            Download
+            Скачать
           </Button>
         </CardFooter>
       </Card>

@@ -69,8 +69,8 @@ export default function OffchainAttestationPage() {
       setVerificationResult({
         isValid,
         message: isValid
-          ? 'Доказательство подтверждено! Лист найден в дереве Меркла.'
-          : 'Недействительное доказательство. Лист не найден в дереве Меркла.',
+          ? 'Доказательство подтверждено! Данные в дереве Меркла.'
+          : 'Недействительное доказательство!',
         proofData: isValid ? parsedProof.leaves : undefined,
       })
     }

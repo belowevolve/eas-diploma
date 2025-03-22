@@ -36,7 +36,7 @@ export default function Page() {
 
   return (
     <PageContainer>
-      <Text variant="h2">Создание множественных аттестатов</Text>
+      <Text variant="h2">Создание группы аттестатов</Text>
       <div className="w-full max-w-4xl space-y-6">
         <FileUploadSection
           isProcessing={isProcessing}

@@ -65,9 +65,9 @@ export function PrivateDataProof({ privateData, onGenerateProof, proofResult }: 
   return (
     <div className="space-y-4">
       <div>
-        <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-2">PRIVATE DATA</Text>
+        <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-2">Приватные данные</Text>
         <Text className="text-sm text-gray-600 mb-4">
-          This data is only visible to those who hold the proofs. Select row(s) to generate a proof.
+          Данные видны только тем, кто имеет доказательство. Выберите строку(и) для генерации доказательства.
         </Text>
       </div>
 
@@ -75,9 +75,9 @@ export function PrivateDataProof({ privateData, onGenerateProof, proofResult }: 
         <table className="w-full">
           <thead className="bg-blue-100">
             <tr>
-              <th className="p-3 text-left">Prove</th>
-              <th className="p-3 text-left">Name</th>
-              <th className="p-3 text-left">Value</th>
+              <th className="p-3 text-left">Доказательство</th>
+              <th className="p-3 text-left">Имя</th>
+              <th className="p-3 text-left">Значение</th>
             </tr>
           </thead>
           <tbody>

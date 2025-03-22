@@ -15,7 +15,7 @@ export function FileUploadSection({ isProcessing, onFileChange }: FileUploadSect
           Файл должен содержать колонки: degree, fio, faculty, program, diploma_theme, date, to
         </Text>
         <div>
-          <a href="/diploma_template.csv" download className="text-primary hover:underline">
+          <a href="/diploma_template.csv" download className="italic text-primary hover:underline">
             Скачать шаблон CSV
           </a>
         </div>
