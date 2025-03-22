@@ -1,135 +1,116 @@
 'use client'
 
+import type { EASAttestation } from '@/shared/lib/eas'
 import type { MerkleMultiProof } from '@ethereum-attestation-service/eas-sdk'
 import { Button } from '@/shared/ui/button'
-import { Card } from '@/shared/ui/card'
+import { CardDescription } from '@/shared/ui/card'
 import { Text } from '@/shared/ui/text'
 import { Textarea } from '@/shared/ui/textarea'
 import { PrivateData } from '@ethereum-attestation-service/eas-sdk'
-import { useCallback, useEffect, useState } from 'react'
+import { CheckIcon, XIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useFragments } from '../fragments-context'
 import { AttestationCard } from '../ui/attestation-card'
+
+interface VerifyResult { isValid: boolean, message: string, proofData?: any[] }
+
+function verifyProof(attestation: EASAttestation, proofInput: string): VerifyResult {
+  if (!proofInput.trim()) {
+    return {
+      isValid: false,
+      message: 'Пожалуйста, введите корректный пруф для проверки',
+    }
+  }
+  try {
+    const parsedProof = JSON.parse(proofInput)
+    const merkleRoot = attestation.sig.message.data
+    const isValid = PrivateData.verifyMultiProof(merkleRoot, parsedProof as MerkleMultiProof)
+    return {
+      isValid,
+      message: isValid
+        ? 'Доказательство подтверждено!'
+        : 'Недействительное доказательство!',
+      proofData: isValid ? parsedProof.leaves : undefined,
+    }
+  }
+  catch (err) {
+    console.error('Error verifying proof:', err)
+    return {
+      isValid: false,
+      message: `Ошибка проверки доказательства: 'Неверный формат доказательства'`,
+    }
+  }
+}
 
 export default function OffchainAttestationPage() {
   const { attestation, proofs } = useFragments()
 
   const [proofInput, setProofInput] = useState('')
-  const [verificationResult, setVerificationResult] = useState<{ isValid: boolean, message: string, proofData?: any[] } | null>(null)
+  const [verificationResult, setVerificationResult] = useState<VerifyResult | null>(null)
 
-  const verifyProof = useCallback((proofs?: MerkleMultiProof) => {
-    if (!attestation || (!proofs && !proofInput.trim())) {
-      setVerificationResult({
-        isValid: false,
-        message: 'Пожалуйста, введите корректный пруф для проверки',
-      })
-      return
-    }
-
-    try {
-      // Parse the proof input
-      const parsedProof = proofInput ? JSON.parse(proofInput) : proofs
-      console.log('parsedProof', parsedProof, proofInput, proofs)
-
-      // Get the merkle root from the attestation data
-      const merkleRoot = attestation.sig.message.data
-
-      // Verify the proof
-      const isValid = PrivateData.verifyMultiProof(merkleRoot, parsedProof as MerkleMultiProof)
-      console.log('merkleRoot', merkleRoot, parsedProof.leaves, isValid)
-
-      setVerificationResult({
-        isValid,
-        message: isValid
-          ? 'Доказательство подтверждено! Данные в дереве Меркла.'
-          : 'Недействительное доказательство!',
-        proofData: isValid ? parsedProof.leaves : undefined,
-      })
-    }
-    catch (err) {
-      console.error('Error verifying proof:', err)
-      setVerificationResult({
-        isValid: false,
-        message: `Ошибка проверки доказательства: ${(err as Error).message || 'Неверный формат доказательства'}`,
-      })
-    }
-  }, [attestation, proofInput])
+  function handleVerifyProof() {
+    setVerificationResult(verifyProof(attestation, proofInput))
+  }
 
   useEffect(() => {
     if (proofs) {
-      setProofInput(JSON.stringify(proofs, null, 2))
-      verifyProof(proofs)
+      const proofInput = JSON.stringify(proofs, null, 2)
+      setProofInput(proofInput)
+      setVerificationResult(verifyProof(attestation, proofInput))
     }
-  }, [proofs, verifyProof])
+  }, [proofs, attestation])
 
   return (
-    <>
-      <AttestationCard attestation={attestation} />
-      <Card className="max-w-4xl mx-auto my-8">
-        <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-2">ПРОВЕРКА доказательства</Text>
-        <Text className="text-sm text-gray-600 mb-2">
-          Импортируйте доказательство или вставьте его ниже для проверки корня Меркла.
-        </Text>
+    <AttestationCard attestation={attestation}>
+      <div>
+        <CardDescription>Проверка доказательства:</CardDescription>
         <Textarea
           className="min-h-32 font-mono text-sm"
-          placeholder="Вставьте доказательство здесь (формат JSON)"
+          placeholder="Импортируйте доказательство или вставьте его ниже для проверки корня Меркла. (формат JSON)"
           value={proofInput}
           onChange={e => setProofInput(e.target.value)}
         />
-        <div className="flex justify-end mt-2">
-          <Button variant="outline" className="ml-auto" onClick={() => verifyProof()}>
-            Проверить доказательство
-          </Button>
-        </div>
+      </div>
+      <div className="flex justify-end">
+        <Button variant="outline" className="ml-auto" onClick={handleVerifyProof}>
+          Проверить доказательство
+        </Button>
+      </div>
 
-        {verificationResult && (
-          <div className={`mt-4 p-4 rounded-md ${verificationResult.isValid ? 'bg-green-100' : 'bg-red-100'}`}>
-            <div className="flex items-center">
-              {verificationResult.isValid
-                ? (
-                    <div className="flex items-center text-green-700">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <Text className="font-medium">{verificationResult.message}</Text>
-                    </div>
-                  )
-                : (
-                    <div className="flex items-center text-red-700">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      <Text className="font-medium">{verificationResult.message}</Text>
-                    </div>
-                  )}
-            </div>
-
-            {verificationResult.isValid && verificationResult.proofData && (
-              <div className="mt-4">
-                <Text className="font-medium text-green-700 mb-2">Расшифрованные данные из доказательства:</Text>
-                <div className="bg-white rounded-md p-3 border border-green-200">
-                  <table className="w-full">
-                    <thead className="bg-green-50">
-                      <tr>
-                        <th className="p-2 text-left text-green-800">Имя</th>
-                        <th className="p-2 text-left text-green-800">Значение</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {verificationResult.proofData.map((item, index) => (
-                        <tr key={index} className="border-t border-green-100">
-                          <td className="p-2 font-medium">{item.name || `Поле ${index + 1}`}</td>
-                          <td className="p-2">{item.value?.toString() || 'Н/Д'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+      {verificationResult && (
+        <div className={`mt-2 p-4 rounded-md ${verificationResult.isValid ? 'bg-success' : 'bg-destructive'}`}>
+          <div className={`flex items-center ${verificationResult.isValid ? 'text-success-foreground' : 'text-destructive-foreground'}`}>
+            {verificationResult.isValid
+              ? <CheckIcon className="mr-2 shrink-0" />
+              : <XIcon className=" mr-2 shrink-0" />}
+            <Text className="font-medium text-current text-balance">{verificationResult.message}</Text>
           </div>
-        )}
 
-      </Card>
-    </>
+          {verificationResult.isValid && verificationResult.proofData && (
+            <div className="mt-4">
+              <Text className="font-medium text-success-foreground mb-2">Расшифрованные данные из доказательства:</Text>
+              <div className="bg-white rounded-md p-3 border border-green-200">
+                <table className="w-full">
+                  <thead className="bg-green-50">
+                    <tr>
+                      <th className="p-2 text-left text-green-800">Имя</th>
+                      <th className="p-2 text-left text-green-800">Значение</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {verificationResult.proofData.map((item, index) => (
+                      <tr key={index} className="border-t border-green-100">
+                        <td className="p-2 font-medium">{item.name || `Поле ${index + 1}`}</td>
+                        <td className="p-2">{item.value?.toString() || 'Н/Д'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </AttestationCard>
   )
 }

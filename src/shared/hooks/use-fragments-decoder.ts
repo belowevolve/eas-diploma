@@ -1,5 +1,4 @@
 import type { AttestationShareablePackageObject, FullMerkleDataTree, MerkleMultiProof } from '@ethereum-attestation-service/eas-sdk'
-import { error } from 'node:console'
 import { decodeUriFragment } from '@/shared/utils/uri-fragment'
 import { decodeBase64ZippedBase64 } from '@ethereum-attestation-service/eas-sdk'
 import { useEffect, useState } from 'react'

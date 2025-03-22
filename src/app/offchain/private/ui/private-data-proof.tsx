@@ -1,6 +1,7 @@
 import type { MerkleMultiProof, MerkleValue } from '@ethereum-attestation-service/eas-sdk'
 import { FRAGMENTS, routes } from '@/shared/config/ROUTES'
 import { Button } from '@/shared/ui/button'
+import { CardDescription } from '@/shared/ui/card'
 import { Checkbox } from '@/shared/ui/checkbox'
 import { Text } from '@/shared/ui/text'
 import { encodeUriFragment } from '@/shared/utils/uri-fragment'
@@ -57,15 +58,15 @@ export function PrivateDataProof({ privateData, onGenerateProof, proofResult }: 
       // Сбросить статус успешного копирования через 2 секунды
       setTimeout(() => setCopySuccess(false), 2000)
     }
-    catch (err) {
-      console.error('Failed to copy link:', err)
+    catch {
+      toast.error('Не удалось скопировать ссылку')
     }
   }
 
   return (
     <div className="space-y-4">
       <div>
-        <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-2">Приватные данные</Text>
+        <CardDescription className="underline">Приватные данные</CardDescription>
         <Text className="text-sm text-gray-600 mb-4">
           Данные видны только тем, кто имеет доказательство. Выберите строку(и) для генерации доказательства.
         </Text>
