@@ -5,7 +5,7 @@ export default antfu(
   {
     react: true,
     typescript: true,
-    ignores: ['migrations/**/*', 'next-env.d.ts', 'src/shared/config/EAS_CONTRACT_ABI.ts'],
+    ignores: ['migrations/**/*', 'next-env.d.ts', 'src/shared/contracts/**/*'],
   },
   {
     plugins: {

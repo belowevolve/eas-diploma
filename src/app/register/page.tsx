@@ -1,12 +1,14 @@
 'use client'
 import type { Address } from 'viem'
 import type { FormSchema } from './model'
+import { easOnchainUrl } from '@/entities/attestation/model/url'
 import { Button } from '@/shared/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form'
 import { Input } from '@/shared/ui/input'
 import { PageContainer } from '@/shared/ui/page-container'
 import { Text } from '@/shared/ui/text'
 import { Textarea } from '@/shared/ui/textarea'
+import { tryCatch } from '@/shared/utils/try-catch'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react'
 import { useForm } from 'react-hook-form'
@@ -32,11 +34,20 @@ export default function Page() {
       return
     }
     console.log(values)
-    const result = await register(values, address as Address)
-    if (result.errors) {
-      toast.error(JSON.stringify(result.errors))
-      console.log(result.errors)
+    const result = await tryCatch(register(values, address as Address))
+    if (result.error) {
+      toast.error(result.error.message)
+      console.log(result.error)
+      return
     }
+    toast.success('Аттестатор успешно зарегистрирован', {
+      action: {
+        label: 'Перейти к аттестату',
+        onClick: () => {
+          window.open(easOnchainUrl(result.data.newAttestationUID), '_blank')
+        },
+      },
+    })
   }
   return (
     <PageContainer>

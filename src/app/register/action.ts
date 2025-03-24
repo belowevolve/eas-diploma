@@ -8,15 +8,12 @@ import { eas } from '@/shared/lib/eas'
 import { backendAccount, backendWalletClient, publicClient } from '@/shared/lib/viem'
 import { SchemaEncoder } from '@ethereum-attestation-service/eas-sdk'
 import { ethers } from 'ethers'
-import { redirect } from 'next/navigation'
 import { formSchema } from './model'
 
 export async function register(data: FormSchema, userAddress: Address) {
   const parsed = formSchema.safeParse(data)
   if (!parsed.success) {
-    return {
-      errors: parsed.error.flatten().fieldErrors,
-    }
+    throw new Error(JSON.stringify(parsed.error.flatten().fieldErrors))
   }
 
   const resolverContractAddress = env.NEXT_PUBLIC_RESOLVER_CONTRACT as Address
@@ -28,7 +25,7 @@ export async function register(data: FormSchema, userAddress: Address) {
   })
 
   if (isAttesterAllowed) {
-    redirect('/')
+    throw new Error('Вы уже зарегистрированы')
   }
 
   const { request } = await publicClient.simulateContract({
@@ -61,6 +58,6 @@ export async function register(data: FormSchema, userAddress: Address) {
 
   console.log('New attestation UID:', newAttestationUID)
   return {
-    message: { newAttestationUID },
+    newAttestationUID,
   }
 }

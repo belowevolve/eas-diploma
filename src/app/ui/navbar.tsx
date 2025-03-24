@@ -9,7 +9,7 @@ export function Navbar() {
     <header className="border-b">
       <nav className="mx-auto flex h-16 max-w-(--breakpoint-xl) items-center justify-between px-4">
         <ul className="flex items-center gap-4">
-          <Link href={routes.createMultiple}><HomeIcon /></Link>
+          <Link href={routes.register}><HomeIcon /></Link>
           /
           {/* <Link href="/register">Регистрация</Link> */}
           <Link href={routes.createMultiple}>Цифровые аттестаты</Link>

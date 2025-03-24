@@ -3,32 +3,6 @@ import { decodeUriFragment } from '@/shared/utils/uri-fragment'
 import { decodeBase64ZippedBase64 } from '@ethereum-attestation-service/eas-sdk'
 import { useEffect, useState } from 'react'
 
-export interface AttestationData {
-  sig: {
-    domain: {
-      name: string
-      version: string
-      chainId: bigint | number
-      verifyingContract: string
-    }
-    primaryType: string
-    types: Record<string, any>
-    message: {
-      schema: string
-      recipient: string
-      time: number
-      expirationTime: number
-      revocable: boolean
-      refUID: string
-      data: string
-      nonce: number
-    }
-    uid: string
-    signature: string
-  }
-  signer: string
-}
-
 export const FRAGMENTS = {
   attestation: 'attestation=',
   proofs: 'proofs=',

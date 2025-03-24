@@ -1,6 +1,8 @@
 const BASE_ROUTES = {
   CREATE_MULTIPLE: '/create-multiple',
   OFFCHAIN: '/offchain',
+  ATTESTATOR: '/attestator',
+  REGISTER: '/register',
 } as const
 
 export const FRAGMENTS = {
@@ -33,4 +35,6 @@ export const routes = {
 
     return url
   },
+  attestator: (address: string) => `${BASE_ROUTES.ATTESTATOR}/${address}`,
+  register: BASE_ROUTES.REGISTER,
 } as const
