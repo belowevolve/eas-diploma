@@ -22,6 +22,7 @@ export default function Page() {
     attestationResults,
     processAttestations,
     downloadQRCode,
+    downloadDiplomaImage,
   } = useAttestationCreation()
 
   // Handle wallet connection
@@ -69,6 +70,7 @@ export default function Page() {
         <AttestationResults
           results={attestationResults}
           onDownloadQRCode={downloadQRCode}
+          onDownloadDiplomaImage={downloadDiplomaImage}
         />
       </div>
     </PageContainer>

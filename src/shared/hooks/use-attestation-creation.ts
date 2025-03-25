@@ -19,6 +19,107 @@ export interface AttestationResult {
   qrCode: string
   url: string
   privateUrl: string
+  diplomaImage?: string
+  degree?: string
+  faculty?: string
+  program?: string
+  diploma_theme?: string
+  date?: number
+}
+
+// Function to generate an image with diploma information
+async function generateDiplomaImage(data: {
+  uid: string
+  fio: string
+  degree: string
+  faculty: string
+  program: string
+  diploma_theme: string
+  date: number
+}): Promise<string> {
+  try {
+    // Create a canvas element
+    const canvas = document.createElement('canvas')
+    canvas.width = 800
+    canvas.height = 600
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      throw new Error('Could not get canvas context')
+    }
+
+    // Set background
+    ctx.fillStyle = '#f5f5f5'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    // Add border
+    ctx.strokeStyle = '#3b82f6'
+    ctx.lineWidth = 10
+    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40)
+
+    // Set text style
+    ctx.fillStyle = '#1f2937'
+    ctx.textAlign = 'center'
+
+    // Add header
+    ctx.font = 'bold 36px Arial'
+    ctx.fillText('Диплом', canvas.width / 2, 80)
+
+    // Add content
+    ctx.font = '20px Arial'
+    const lineHeight = 40
+    let y = 150
+
+    // Format date
+    const dateObj = new Date(data.date * 1000)
+    const formattedDate = dateObj.toLocaleDateString('ru-RU')
+
+    // Add details
+    ctx.textAlign = 'center'
+    ctx.fillText(`${data.fio}`, canvas.width / 2, y)
+    y += lineHeight
+    ctx.fillText(`Степень: ${data.degree}`, canvas.width / 2, y)
+    y += lineHeight
+    ctx.fillText(`Факультет: ${data.faculty}`, canvas.width / 2, y)
+    y += lineHeight
+    ctx.fillText(`Программа: ${data.program}`, canvas.width / 2, y)
+    y += lineHeight
+
+    // Add diploma theme with word wrap
+    const maxWidth = 700
+    const words = data.diploma_theme.split(' ')
+    let line = ''
+    ctx.fillText(`Тема диплома:`, canvas.width / 2, y)
+    y += 30
+
+    for (let i = 0; i < words.length; i++) {
+      const testLine = `${line + words[i]} `
+      const metrics = ctx.measureText(testLine)
+      if (metrics.width > maxWidth && i > 0) {
+        ctx.fillText(line, canvas.width / 2, y)
+        line = `${words[i]} `
+        y += 30
+      }
+      else {
+        line = testLine
+      }
+    }
+    ctx.fillText(line, canvas.width / 2, y)
+    y += lineHeight
+
+    ctx.fillText(`Дата выдачи: ${formattedDate}`, canvas.width / 2, y)
+    y += lineHeight
+
+    // Add UID at the bottom
+    ctx.font = '14px Arial'
+    ctx.fillText(`ID: ${data.uid}`, canvas.width / 2, y + 20)
+
+    // Convert canvas to data URL
+    return canvas.toDataURL('image/png')
+  }
+  catch (error) {
+    console.error('Error generating diploma image:', error)
+    return ''
+  }
 }
 
 export function useAttestationCreation() {
@@ -157,6 +258,17 @@ export function useAttestationCreation() {
               const qrCode = await generateQRCode(merkleData)
               const merkleEncoded = encodeUriFragment(merkleData)
 
+              // Generate diploma image
+              const diplomaImage = await generateDiplomaImage({
+                uid: offchainAttestation.uid,
+                fio: request.record.fio,
+                degree: request.record.degree,
+                faculty: request.record.faculty,
+                program: request.record.program,
+                diploma_theme: request.record.diploma_theme,
+                date: Number(request.record.date),
+              })
+
               return {
                 uid: offchainAttestation.uid,
                 recipient: request.recipient,
@@ -164,6 +276,12 @@ export function useAttestationCreation() {
                 qrCode,
                 privateUrl: routes.offchainPrivate({ attestation: attestationEncoded, merkle: merkleEncoded }),
                 url: routes.offchainView({ attestation: attestationEncoded }),
+                diplomaImage,
+                degree: request.record.degree,
+                faculty: request.record.faculty,
+                program: request.record.program,
+                diploma_theme: request.record.diploma_theme,
+                date: Number(request.record.date),
               }
             }
             catch (error) {
@@ -232,6 +350,21 @@ export function useAttestationCreation() {
     document.body.removeChild(link)
   }
 
+  // Function to download diploma image
+  const downloadDiplomaImage = (diplomaImage: string, fio: string) => {
+    if (!diplomaImage) {
+      toast.error('Изображение диплома не найдено')
+      return
+    }
+
+    const link = document.createElement('a')
+    link.href = diplomaImage
+    link.download = `diploma-${fio.replace(/\s+/g, '-')}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return {
     isProcessing,
     progress,
@@ -239,5 +372,6 @@ export function useAttestationCreation() {
     setAttestationResults,
     processAttestations,
     downloadQRCode,
+    downloadDiplomaImage,
   }
 }
