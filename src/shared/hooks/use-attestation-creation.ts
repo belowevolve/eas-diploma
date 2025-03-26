@@ -7,7 +7,7 @@ import { zipAndEncodeToBase64 } from '@ethereum-attestation-service/eas-sdk'
 import QRCode from 'qrcode'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { zeroHash } from 'viem'
+import { sha256, zeroHash } from 'viem'
 import { routes } from '../config/ROUTES'
 import { useSigner } from './use-signer'
 
@@ -20,6 +20,7 @@ export interface AttestationResult {
   url: string
   privateUrl: string
   diplomaImage?: string
+  diplomaImageHash?: string
   degree?: string
   faculty?: string
   program?: string
@@ -36,7 +37,7 @@ async function generateDiplomaImage(data: {
   program: string
   diploma_theme: string
   date: number
-}): Promise<string> {
+}): Promise<{ image: string, hash: string }> {
   try {
     // Create a canvas element
     const canvas = document.createElement('canvas')
@@ -70,7 +71,7 @@ async function generateDiplomaImage(data: {
     let y = 150
 
     // Format date
-    const dateObj = new Date(data.date * 1000)
+    const dateObj = new Date(data.date)
     const formattedDate = dateObj.toLocaleDateString('ru-RU')
 
     // Add details
@@ -113,12 +114,28 @@ async function generateDiplomaImage(data: {
     ctx.font = '14px Arial'
     ctx.fillText(`ID: ${data.uid}`, canvas.width / 2, y + 20)
 
+    // Convert canvas to blob
+    const blob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob((blob) => {
+        if (blob)
+          resolve(blob)
+      }, 'image/png')
+    })
+
+    // Convert blob to array buffer
+    const arrayBuffer = await blob.arrayBuffer()
+
+    // Calculate SHA-256 hash
+    const hash = sha256(new Uint8Array(arrayBuffer))
+
     // Convert canvas to data URL
-    return canvas.toDataURL('image/png')
+    const image = canvas.toDataURL('image/png')
+
+    return { image, hash }
   }
   catch (error) {
     console.error('Error generating diploma image:', error)
-    return ''
+    return { image: '', hash: '' }
   }
 }
 
@@ -259,7 +276,7 @@ export function useAttestationCreation() {
               const merkleEncoded = encodeUriFragment(merkleData)
 
               // Generate diploma image
-              const diplomaImage = await generateDiplomaImage({
+              const { image: diplomaImage, hash: diplomaImageHash } = await generateDiplomaImage({
                 uid: offchainAttestation.uid,
                 fio: request.record.fio,
                 degree: request.record.degree,
@@ -269,14 +286,33 @@ export function useAttestationCreation() {
                 date: Number(request.record.date),
               })
 
+              // Create content hash attestation
+              const contentHashSchemaEncoder = new SchemaEncoder('bytes32 contentHash')
+              console.log({ diplomaImageHash })
+              const contentHashAttestation = await offChain.signOffchainAttestation({
+                schema: env.NEXT_PUBLIC_CONTENT_HASH_SCHEMA_UID,
+                recipient: address,
+                expirationTime: 0n,
+                revocable: true,
+                data: contentHashSchemaEncoder.encodeData([{ name: 'contentHash', value: diplomaImageHash, type: 'bytes32' }]),
+                time: BigInt(Math.floor(Date.now() / 1000)),
+                refUID: offchainAttestation.uid,
+              }, signer)
+
+              const contentHashEncoded = zipAndEncodeToBase64({
+                sig: contentHashAttestation,
+                signer: address,
+              })
+
               return {
                 uid: offchainAttestation.uid,
                 recipient: request.recipient,
                 fio: request.record.fio,
                 qrCode,
-                privateUrl: routes.offchainPrivate({ attestation: attestationEncoded, merkle: merkleEncoded }),
-                url: routes.offchainView({ attestation: attestationEncoded }),
+                privateUrl: routes.offchainPrivate({ attestation: attestationEncoded, merkle: merkleEncoded, refAttestation: contentHashEncoded }),
+                url: routes.offchainView({ attestation: attestationEncoded, refAttestation: contentHashEncoded }),
                 diplomaImage,
+                diplomaImageHash,
                 degree: request.record.degree,
                 faculty: request.record.faculty,
                 program: request.record.program,

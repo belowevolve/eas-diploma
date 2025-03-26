@@ -98,6 +98,15 @@ export function AttestationResults({ results, onDownloadQRCode, onDownloadDiplom
                   />
                 </div>
               )}
+              {result.diplomaImageHash && (
+                <Text className="text-xs text-gray-500 truncate w-full text-center" title={result.diplomaImageHash}>
+                  SHA-256:
+                  {' '}
+                  {result.diplomaImageHash.substring(0, 10)}
+                  ...
+                  {result.diplomaImageHash.substring(result.diplomaImageHash.length - 10)}
+                </Text>
+              )}
               <div className="flex flex-col w-full space-y-2">
                 <Button
                   variant="outline"

@@ -10,15 +10,29 @@ import { FragmentsContext } from './fragments-context'
 
 export default function OffchainLayout({ children }: { children: React.ReactNode }) {
   const { fragments, loading, error } = useFragmentsDecoder()
-  const { revoke, isPending: attestationValidationLoading, error: attestationValidationError } = useAttestationValidity(fragments.attestation)
+  const { revoke, isPending: attestationValidationPending, error: attestationValidationError } = useAttestationValidity(fragments.attestation)
+  const { revoke: refRevoke, isPending: refAttestationValidationPending, error: refAttestationValidationError } = useAttestationValidity(fragments.refAttestation)
 
   const contextValue: FragmentsContextValue | null = useMemo(() => {
-    return fragments.attestation
-      ? { ...fragments, attestation: { ...fragments.attestation, revoke } }
-      : null
-  }, [fragments, revoke])
+    if (!fragments.attestation)
+      return null
 
-  if (loading || attestationValidationLoading) {
+    // Create the context value with proper typing
+    const enhancedAttestation = { ...fragments.attestation, revoke }
+
+    // Handle refAttestation properly - it might be null
+    const enhancedRefAttestation = fragments.refAttestation
+      ? { ...fragments.refAttestation, revoke: refRevoke }
+      : null
+
+    return {
+      ...fragments,
+      attestation: enhancedAttestation,
+      refAttestation: enhancedRefAttestation,
+    }
+  }, [fragments, revoke, refRevoke])
+
+  if (loading || attestationValidationPending || refAttestationValidationPending) {
     return (
       <PageContainer>
         <div className="flex items-center justify-center min-h-[50vh]">
@@ -28,7 +42,7 @@ export default function OffchainLayout({ children }: { children: React.ReactNode
     )
   }
 
-  if (error || attestationValidationError) {
+  if (error || attestationValidationError || refAttestationValidationError) {
     return (
       <PageContainer>
         <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">

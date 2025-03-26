@@ -2,14 +2,17 @@
 
 import type { EASAttestation } from '@/shared/lib/eas'
 import { useAttestor } from '@/entities/attestation/api/use-attestor'
-import { verifyOffchainAttestation } from '@/shared/lib/eas'
+import { easSchemaUrl } from '@/entities/attestation/model/url'
+import { eas, verifyOffchainAttestation } from '@/shared/lib/eas'
 import { formatDate } from '@/shared/lib/utils'
 import { Badge } from '@/shared/ui/badge'
+import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/shared/ui/card'
 import { Text } from '@/shared/ui/text'
 import { shortAddress } from '@/shared/utils/address'
+import { EyeIcon } from 'lucide-react'
 import Link from 'next/link'
-import { zeroAddress } from 'viem'
+import { zeroAddress, zeroHash } from 'viem'
 import { AttestationQRCode } from './attestation-qr-code'
 import { AttestationRawData } from './attestation-raw-data'
 import { Revoke } from './revoke'
@@ -76,14 +79,25 @@ export function AttestationCard({ attestation, children }: { attestation: EASAtt
             <CardDescription>Схема:</CardDescription>
             <div className="flex items-center bg-blue-100 p-3 rounded-md">
               <div className="bg-blue-300 text-blue-800 font-bold rounded px-3 py-1 mr-3">
-                #1
+                #
+                {attestation.sig.message.schema.slice(-2)}
               </div>
               <div>
-                <Text className="font-medium">ПРИВАТНЫЕ ДАННЫЕ</Text>
+                <Text className="font-medium text-sm">Хеш даных</Text>
                 <Text className="font-mono text-muted-foreground text-sm break-all">
                   {shortAddress(attestation.sig.message.schema)}
                 </Text>
               </div>
+              <Button size="icon" className="ml-auto" variant="blue" asChild>
+                <Link
+                  href={easSchemaUrl(attestation.sig.message.schema)}
+                  aria-label="Посмотреть схему"
+                  target="_blank"
+                >
+                  <EyeIcon />
+
+                </Link>
+              </Button>
             </div>
           </div>
           <div className="flex flex-col gap-2 ">
@@ -135,7 +149,11 @@ export function AttestationCard({ attestation, children }: { attestation: EASAtt
 
           <div>
             <CardDescription>Связанная аттестация:</CardDescription>
-            <Text>Нет ссылок</Text>
+            <Text className="font-mono font-bold text-sm break-all">
+              {attestation.sig.message.refUID === zeroHash
+                ? 'Нет связанной аттестации'
+                : attestation.sig.message.refUID}
+            </Text>
           </div>
         </CardContent>
 

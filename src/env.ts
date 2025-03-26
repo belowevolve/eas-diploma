@@ -15,6 +15,7 @@ export const env = createEnv({
     NEXT_PUBLIC_RESOLVER_CONTRACT: AddressSchema,
     NEXT_PUBLIC_DIPLOMA_SCHEMA_UID: AddressSchema,
     NEXT_PUBLIC_EAS_URL: z.string().min(1),
+    NEXT_PUBLIC_CONTENT_HASH_SCHEMA_UID: AddressSchema,
   },
   experimental__runtimeEnv: {
     NEXT_PUBLIC_EAS_CONTRACT: process.env.NEXT_PUBLIC_EAS_CONTRACT,
@@ -22,5 +23,6 @@ export const env = createEnv({
     NEXT_PUBLIC_RESOLVER_CONTRACT: process.env.NEXT_PUBLIC_RESOLVER_CONTRACT,
     NEXT_PUBLIC_DIPLOMA_SCHEMA_UID: process.env.NEXT_PUBLIC_DIPLOMA_SCHEMA_UID,
     NEXT_PUBLIC_EAS_URL: process.env.NEXT_PUBLIC_EAS_URL,
+    NEXT_PUBLIC_CONTENT_HASH_SCHEMA_UID: process.env.NEXT_PUBLIC_CONTENT_HASH_SCHEMA_UID,
   },
 })

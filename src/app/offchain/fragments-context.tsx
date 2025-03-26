@@ -4,6 +4,7 @@ import { createContext, useContext } from 'react'
 
 export interface FragmentsContextValue extends FragmentsData {
   attestation: EASAttestation
+  refAttestation: EASAttestation | null
 }
 
 export const FragmentsContext = createContext<FragmentsContextValue | null>(null)
