@@ -3,7 +3,7 @@
 import type { EASAttestation } from '@/shared/lib/eas'
 import { useAttestor } from '@/entities/attestation/api/use-attestor'
 import { easSchemaUrl } from '@/entities/attestation/model/url'
-import { eas, verifyOffchainAttestation } from '@/shared/lib/eas'
+import { verifyOffchainAttestation } from '@/shared/lib/eas'
 import { formatDate } from '@/shared/lib/utils'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'

@@ -25,22 +25,24 @@ export interface UseFragmentsDecoderResult {
   error: string | null
 }
 
+const initialFragments: FragmentsData = {
+  attestation: null,
+  proofs: null,
+  merkle: null,
+  refAttestation: null,
+}
+
 /**
  * Хук для декодирования всех фрагментов из URL
  * @returns объект со всеми найденными фрагментами, состоянием загрузки и ошибкой
  */
 export function useFragmentsDecoder(): UseFragmentsDecoderResult {
-  const [fragments, setFragments] = useState<FragmentsData>({
-    attestation: null,
-    proofs: null,
-    merkle: null,
-    refAttestation: null,
-  })
+  const [fragments, setFragments] = useState<FragmentsData>(initialFragments)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const newFragments = { ...fragments }
+    const newFragments = initialFragments
     let foundAny = false
     let errorMessage: string | null = null
 
