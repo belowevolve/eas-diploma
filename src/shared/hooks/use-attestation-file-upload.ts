@@ -118,7 +118,7 @@ export function useAttestationFileUpload() {
         })
 
         if (errors.length > 0) {
-          toast.error(`Найдено ${errors.length} ошибок в файле`)
+          toast.error(`Найдено ${errors.length} ${errors.length === 1 ? 'ошибка' : errors.length < 5 ? 'ошибки' : 'ошибок'} в файле`)
           console.error(errors)
         }
 

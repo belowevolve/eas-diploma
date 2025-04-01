@@ -4,6 +4,7 @@ import { skipToken, useQuery } from '@tanstack/react-query'
 import { useProvider } from './use-provider'
 
 export const QK_ATT_VALIDITY = (uid?: string, signer?: string) => ['attestation-validity', uid, signer]
+
 export function useAttestationValidity(attestation: AttestationShareablePackageObject | null) {
   const provider = useProvider()
   const queryKey = QK_ATT_VALIDITY(attestation?.sig.uid, attestation?.signer)
