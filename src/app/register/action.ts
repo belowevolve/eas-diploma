@@ -1,6 +1,7 @@
 'use server'
 import type { Address } from 'viem'
 import type { FormSchema } from './model'
+import { getAttestor } from '@/entities/attestation/api/server/get-attestor'
 import { env } from '@/env'
 import { RESOLVER_ABI } from '@/shared/contracts/resolver'
 import { clientToProvider } from '@/shared/hooks/use-provider'
@@ -16,6 +17,11 @@ export async function register(data: FormSchema, userAddress: Address) {
     throw new Error(JSON.stringify(parsed.error.flatten().fieldErrors))
   }
 
+  const attestor = await getAttestor(userAddress)
+  if (attestor) {
+    throw new Error('Вы уже зарегистрированы')
+  }
+
   const resolverContractAddress = env.NEXT_PUBLIC_RESOLVER_CONTRACT as Address
   const isAttesterAllowed = await publicClient.readContract({
     address: resolverContractAddress,
@@ -24,18 +30,16 @@ export async function register(data: FormSchema, userAddress: Address) {
     args: [userAddress],
   })
 
-  if (isAttesterAllowed) {
-    throw new Error('Вы уже зарегистрированы')
+  if (!isAttesterAllowed) {
+    const { request } = await publicClient.simulateContract({
+      account: backendAccount,
+      address: resolverContractAddress,
+      abi: RESOLVER_ABI,
+      functionName: 'addAttester',
+      args: [userAddress],
+    })
+    await backendWalletClient.writeContract(request)
   }
-
-  const { request } = await publicClient.simulateContract({
-    account: backendAccount,
-    address: resolverContractAddress,
-    abi: RESOLVER_ABI,
-    functionName: 'addAttester',
-    args: [userAddress],
-  })
-  await backendWalletClient.writeContract(request)
 
   const signer = new ethers.Wallet(env.PRIVATE_KEY, clientToProvider(publicClient))
   eas.connect(signer)

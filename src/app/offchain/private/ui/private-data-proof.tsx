@@ -1,5 +1,6 @@
 import type { MerkleMultiProof, MerkleValue } from '@ethereum-attestation-service/eas-sdk'
 import { FRAGMENTS, routes } from '@/shared/config/ROUTES'
+import { renderMerkleValue } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import { CardDescription } from '@/shared/ui/card'
 import { Checkbox } from '@/shared/ui/checkbox'
@@ -91,7 +92,7 @@ export function PrivateDataProof({ privateData, onGenerateProof, proofResult }: 
                   />
                 </td>
                 <td className="p-3">{item.name}</td>
-                <td className="p-3">{item.value as any}</td>
+                <td className="p-3">{renderMerkleValue(item)}</td>
               </tr>
             ))}
           </tbody>
@@ -117,7 +118,8 @@ export function PrivateDataProof({ privateData, onGenerateProof, proofResult }: 
         <div className="mt-4">
           <Text as="h3" className="text-gray-500 uppercase text-sm font-medium mb-2">PROOF RESULT</Text>
           <pre className="bg-gray-50 p-4 rounded-md text-sm overflow-auto">
-            {JSON.stringify(proofResult, null, 2)}
+            {JSON.stringify(proofResult, (key, value) =>
+              typeof value === 'bigint' ? value.toString() : value, 2)}
           </pre>
         </div>
       )}

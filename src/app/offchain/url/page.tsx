@@ -2,6 +2,7 @@
 
 import type { EASAttestation } from '@/shared/lib/eas'
 import type { MerkleMultiProof } from '@ethereum-attestation-service/eas-sdk'
+import { renderMerkleValue } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import { CardDescription } from '@/shared/ui/card'
 import { Text } from '@/shared/ui/text'
@@ -104,7 +105,9 @@ export default function OffchainAttestationPage() {
                       {verificationResult.proofData.map((item, index) => (
                         <tr key={index} className="border-t border-green-100">
                           <td className="p-2 font-medium">{item.name || `Поле ${index + 1}`}</td>
-                          <td className="p-2">{item.value?.toString() || 'Н/Д'}</td>
+                          <td className="p-2">
+                            {renderMerkleValue(item)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -218,10 +221,12 @@ export default function OffchainAttestationPage() {
                     <Text className="font-medium text-current">{fileVerification.message}</Text>
                     <Text className="text-sm opacity-90">
                       Файл:
+                      {' '}
                       {fileVerification.fileName}
                     </Text>
                     <Text className="text-sm font-mono opacity-90">
                       Хеш:
+                      {' '}
                       {fileVerification.fileHash}
                     </Text>
                   </div>

@@ -149,7 +149,7 @@ export default function Page() {
             name="date"
             render={() => (
               <FormItem>
-                <FormLabel>Год выдачи</FormLabel>
+                <FormLabel>Дата выдачи</FormLabel>
                 <FormControl>
                   <Input placeholder="2025" {...form.register('date', { valueAsNumber: true })} />
                 </FormControl>

@@ -11,7 +11,7 @@ import { FragmentsContext } from './fragments-context'
 export default function OffchainLayout({ children }: { children: React.ReactNode }) {
   const { fragments, loading, error } = useFragmentsDecoder()
   const { revoke, isPending: attestationValidationPending, error: attestationValidationError } = useAttestationValidity(fragments.attestation)
-  const { revoke: refRevoke, isPending: refAttestationValidationPending, error: refAttestationValidationError } = useAttestationValidity(fragments.refAttestation)
+  const { revoke: refRevoke, error: refAttestationValidationError } = useAttestationValidity(fragments.refAttestation)
 
   const contextValue: FragmentsContextValue | null = useMemo(() => {
     if (!fragments.attestation)
@@ -32,7 +32,7 @@ export default function OffchainLayout({ children }: { children: React.ReactNode
     }
   }, [fragments, revoke, refRevoke])
 
-  if (loading || attestationValidationPending || refAttestationValidationPending) {
+  if (loading || attestationValidationPending) {
     return (
       <PageContainer>
         <div className="flex items-center justify-center min-h-[50vh]">

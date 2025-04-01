@@ -61,7 +61,15 @@ export function useAttestationFileUpload() {
           const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' })
           const sheetName = workbook.SheetNames[0]
           const worksheet = workbook.Sheets[sheetName]
-          parsedData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet)
+
+          // Configure XLSX to format dates as strings in the format DD.MM.YYYY
+          XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { raw: false })
+
+          // Read data with date formatting
+          parsedData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, {
+            raw: false,
+            dateNF: 'DD.MM.YYYY',
+          })
         }
 
         // Validate and convert records
@@ -69,14 +77,37 @@ export function useAttestationFileUpload() {
         const errors: string[] = []
 
         parsedData.forEach((record, index) => {
+          console.log(record)
           try {
+            // Process the date based on its format
+            let dateTimestamp: number
+
+            if (typeof record.date === 'string' && record.date.includes('.')) {
+              // Handle DD.MM.YYYY format
+              const [day, month, year] = record.date.split('.').map(Number)
+              const dateObj = new Date(year, month - 1, day)
+              dateTimestamp = Math.floor(dateObj.getTime() / 1000)
+            }
+            else if (typeof record.date === 'number') {
+              // Handle Excel numeric date directly
+              // Convert Excel date (days since 1900-01-01) to JS date
+              const excelEpoch = new Date(1899, 11, 30)
+              const dateObj = new Date(excelEpoch)
+              dateObj.setDate(excelEpoch.getDate() + record.date)
+              dateTimestamp = Math.floor(dateObj.getTime() / 1000)
+            }
+            else {
+              // Fallback to parsing as string
+              dateTimestamp = Math.floor(Date.parse(record.date) / 1000)
+            }
+
             const validRecord = recordSchema.parse({
               degree: record.degree,
               fio: record.fio,
               faculty: record.faculty,
               program: record.program,
               diploma_theme: record.diploma_theme,
-              date: record.date,
+              date: dateTimestamp,
               to: record.to,
             })
             validRecords.push(validRecord)

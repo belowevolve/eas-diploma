@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { sha256, zeroHash } from 'viem'
 import { routes } from '../config/ROUTES'
+import { formatDate } from '../lib/utils'
 import { useSigner } from './use-signer'
 
 // Define the structure for attestation result with QR code
@@ -71,8 +72,7 @@ async function generateDiplomaImage(data: {
     let y = 150
 
     // Format date
-    const dateObj = new Date(data.date)
-    const formattedDate = dateObj.toLocaleDateString('ru-RU')
+    const formattedDate = formatDate(new Date(data.date * 1000))
 
     // Add details
     ctx.textAlign = 'center'
@@ -283,7 +283,7 @@ export function useAttestationCreation() {
                 faculty: request.record.faculty,
                 program: request.record.program,
                 diploma_theme: request.record.diploma_theme,
-                date: Number(request.record.date),
+                date: request.record.date,
               })
 
               // Create content hash attestation

@@ -59,7 +59,7 @@ export function AttestationCard({ attestation, children }: { attestation: EASAtt
                 {isRevoked
                   ? (
                       <span className="text-destructive-foreground">
-                        {formatDate(new Date(Number(revokeTimestamp) * 1000))}
+                        {formatDate(new Date(revokeTimestamp * 1000))}
                       </span>
                     )
 
