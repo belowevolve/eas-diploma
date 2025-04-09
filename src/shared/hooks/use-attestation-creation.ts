@@ -7,11 +7,12 @@ import { zipAndEncodeToBase64 } from '@ethereum-attestation-service/eas-sdk'
 import QRCode from 'qrcode'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { sha256, zeroHash } from 'viem'
+import { sha256, zeroAddress, zeroHash } from 'viem'
 import { routes } from '../config/ROUTES'
 import { formatDate } from '../lib/utils'
 import { useSigner } from './use-signer'
 
+const BATCH_SIZE = 5
 // Define the structure for attestation result with QR code
 export interface AttestationResult {
   uid: string
@@ -139,31 +140,55 @@ async function generateDiplomaImage(data: {
   }
 }
 
+// Generate QR code from attestation data
+async function generateQRCode(data: any): Promise<string> {
+  try {
+    // Convert data to JSON string
+    const jsonData = JSON.stringify(data)
+    // Generate QR code as data URL
+    return await QRCode.toDataURL(jsonData, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: 200,
+    })
+  }
+  catch (error) {
+    console.error('Error generating QR code:', error)
+    return ''
+  }
+}
+
+// Function to download QR code
+export function downloadQRCode(qrCode: string, fio: string) {
+  const link = document.createElement('a')
+  link.href = qrCode
+  link.download = `attestation-${fio.replace(/\s+/g, '-')}.png`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+// Function to download diploma image
+export function downloadDiplomaImage(diplomaImage: string, fio: string) {
+  if (!diplomaImage) {
+    toast.error('Изображение диплома не найдено')
+    return
+  }
+
+  const link = document.createElement('a')
+  link.href = diplomaImage
+  link.download = `diploma-${fio.replace(/\s+/g, '-')}.png`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 export function useAttestationCreation() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
   const [attestationResults, setAttestationResults] = useState<AttestationResult[]>([])
   const signer = useSigner()
 
-  // Generate QR code from attestation data
-  const generateQRCode = async (data: any): Promise<string> => {
-    try {
-      // Convert data to JSON string
-      const jsonData = JSON.stringify(data)
-      // Generate QR code as data URL
-      return await QRCode.toDataURL(jsonData, {
-        errorCorrectionLevel: 'M',
-        margin: 1,
-        width: 200,
-      })
-    }
-    catch (error) {
-      console.error('Error generating QR code:', error)
-      return ''
-    }
-  }
-
-  // Process all attestations
   const processAttestations = async (records: AttestationRecord[], address?: string) => {
     if (!address || !signer) {
       toast.error('Подключите кошелек')
@@ -177,28 +202,21 @@ export function useAttestationCreation() {
 
     setIsProcessing(true)
     setProgress(5)
-    // Clear previous results
     setAttestationResults([])
 
     try {
-      // Connect to EAS with the signer
       eas.connect(signer)
       const offChain = await eas.getOffchain()
-
-      // Import EAS SDK components
       const { PrivateData, SchemaEncoder } = await import('@ethereum-attestation-service/eas-sdk')
 
       setProgress(10)
 
-      // Prepare all attestation data
       const attestationRequests = await Promise.all(records.map(async (record) => {
-        // Ensure recipient address is a valid Ethereum address (not an ENS name)
-        const recipient = record.to
+        const recipient = record.to || zeroAddress
         if (!recipient.startsWith('0x') || recipient.length !== 42) {
           throw new Error(`Неверный адрес получателя: ${recipient}`)
         }
 
-        // Create merkle tree for private data
         const merkle: MerkleValue[] = [
           { type: 'string', name: 'degree', value: record.degree },
           { type: 'string', name: 'fio', value: record.fio },
@@ -228,28 +246,24 @@ export function useAttestationCreation() {
 
       setProgress(30)
 
-      // Process attestations in batches to avoid overwhelming the system
       const totalAttestations = attestationRequests.length
       const attestationResults: AttestationResult[] = []
       const errors: { index: number, error: string }[] = []
 
-      // Process attestations in batches
-      const batchSize = 5
-      const batches = Math.ceil(totalAttestations / batchSize)
+      const batches = Math.ceil(totalAttestations / BATCH_SIZE)
 
       for (let batchIndex = 0; batchIndex < batches; batchIndex++) {
-        const start = batchIndex * batchSize
-        const end = Math.min(start + batchSize, totalAttestations)
+        const start = batchIndex * BATCH_SIZE
+        const end = Math.min(start + BATCH_SIZE, totalAttestations)
         const batchRequests = attestationRequests.slice(start, end)
 
-        // Process each attestation in the current batch
         const batchResults: PromiseSettledResult<AttestationResult>[] = await Promise.allSettled(
           batchRequests.map(async (request, index) => {
             try {
               const offchainAttestation = await offChain.signOffchainAttestation(
                 {
                   schema: request.schema,
-                  recipient: request.recipient,
+                  recipient: request.recipient ?? zeroAddress,
                   expirationTime: request.expirationTime,
                   revocable: request.revocable,
                   data: request.data,
@@ -257,6 +271,9 @@ export function useAttestationCreation() {
                   refUID: request.refUID,
                 },
                 signer,
+                {
+                  verifyOnchain: true,
+                },
               )
 
               const attestationEncoded = zipAndEncodeToBase64({
@@ -264,18 +281,15 @@ export function useAttestationCreation() {
                 signer: address,
               })
 
-              // Create the merkle data object for QR code
               const merkleData = {
                 relatedUid: offchainAttestation.uid,
                 root: request.merkle.root,
                 values: request.merkle.values,
               }
 
-              // Generate QR code with the merkle data
               const qrCode = await generateQRCode(merkleData)
               const merkleEncoded = encodeUriFragment(merkleData)
 
-              // Generate diploma image
               const { image: diplomaImage, hash: diplomaImageHash } = await generateDiplomaImage({
                 uid: offchainAttestation.uid,
                 fio: request.record.fio,
@@ -286,9 +300,7 @@ export function useAttestationCreation() {
                 date: request.record.date,
               })
 
-              // Create content hash attestation
               const contentHashSchemaEncoder = new SchemaEncoder('bytes32 contentHash')
-              console.log({ diplomaImageHash })
               const contentHashAttestation = await offChain.signOffchainAttestation({
                 schema: env.NEXT_PUBLIC_CONTENT_HASH_SCHEMA_UID,
                 recipient: address,
@@ -326,7 +338,6 @@ export function useAttestationCreation() {
           }),
         )
 
-        // Process results from this batch
         batchResults.forEach((result, index) => {
           if (result.status === 'fulfilled') {
             attestationResults.push(result.value)
@@ -339,21 +350,16 @@ export function useAttestationCreation() {
           }
         })
 
-        // Update attestation results state
         setAttestationResults([...attestationResults])
-
-        // Update progress
         const progressValue = 30 + Math.floor(((batchIndex + 1) / batches) * 70)
         setProgress(progressValue)
       }
 
-      // Log results
       console.log('Успешно созданные аттестации:', attestationResults)
       if (errors.length > 0) {
         console.error('Ошибки при создании аттестаций:', errors)
       }
 
-      // Show success/error message
       if (attestationResults.length === totalAttestations) {
         toast.success(`Успешно создано ${attestationResults.length} оффчейн аттестаций`)
       }
@@ -376,38 +382,11 @@ export function useAttestationCreation() {
     }
   }
 
-  // Function to download QR code
-  const downloadQRCode = (qrCode: string, fio: string) => {
-    const link = document.createElement('a')
-    link.href = qrCode
-    link.download = `attestation-${fio.replace(/\s+/g, '-')}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
-  // Function to download diploma image
-  const downloadDiplomaImage = (diplomaImage: string, fio: string) => {
-    if (!diplomaImage) {
-      toast.error('Изображение диплома не найдено')
-      return
-    }
-
-    const link = document.createElement('a')
-    link.href = diplomaImage
-    link.download = `diploma-${fio.replace(/\s+/g, '-')}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
   return {
     isProcessing,
     progress,
     attestationResults,
     setAttestationResults,
     processAttestations,
-    downloadQRCode,
-    downloadDiplomaImage,
   }
 }

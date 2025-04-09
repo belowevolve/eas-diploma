@@ -1,5 +1,6 @@
-import type { MerkleMultiProof, MerkleValue } from '@ethereum-attestation-service/eas-sdk'
+import type { MerkleValue } from '@ethereum-attestation-service/eas-sdk'
 import { FRAGMENTS, routes } from '@/shared/config/ROUTES'
+import { useMerkleProof } from '@/shared/hooks/use-merkle-proof'
 import { renderMerkleValue } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import { CardDescription } from '@/shared/ui/card'
@@ -10,13 +11,12 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 interface PrivateDataProofProps {
-  privateData?: MerkleValue[]
-  onGenerateProof: (selectedRows: number[]) => void
-  proofResult?: MerkleMultiProof | null
+  privateData: MerkleValue[]
 }
 
-export function PrivateDataProof({ privateData, onGenerateProof, proofResult }: PrivateDataProofProps) {
+export function PrivateDataProof({ privateData }: PrivateDataProofProps) {
   const [copySuccess, setCopySuccess] = useState<boolean>(false)
+  const { generateProof, proofResult } = useMerkleProof(privateData)
 
   const [selectedRows, setSelectedRows] = useState<number[]>([])
   const handleRowSelect = (index: number) => {
@@ -28,7 +28,7 @@ export function PrivateDataProof({ privateData, onGenerateProof, proofResult }: 
   }
 
   const handleGenerateProof = () => {
-    onGenerateProof(selectedRows)
+    generateProof(selectedRows)
   }
 
   const handleCopyLink = async () => {

@@ -3,17 +3,6 @@ import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { z } from 'zod'
 
-// Define the structure for a single attestation record
-export interface AttestationRecord {
-  degree: string
-  fio: string
-  faculty: string
-  program: string
-  diploma_theme: string
-  date: number
-  to: string
-}
-
 // Simple validation schema
 const recordSchema = z.object({
   degree: z.string().min(1),
@@ -22,8 +11,10 @@ const recordSchema = z.object({
   program: z.string().min(1),
   diploma_theme: z.string().min(1),
   date: z.coerce.number(),
-  to: z.string().startsWith('0x'),
+  to: z.string().startsWith('0x').optional(),
 })
+
+export interface AttestationRecord extends z.infer<typeof recordSchema> {}
 
 export function useAttestationFileUpload() {
   const [records, setRecords] = useState<AttestationRecord[]>([])

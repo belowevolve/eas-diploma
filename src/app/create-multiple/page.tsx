@@ -1,5 +1,5 @@
 'use client'
-import { useAttestationCreation } from '@/shared/hooks/use-attestation-creation'
+import { downloadDiplomaImage, downloadQRCode, useAttestationCreation } from '@/shared/hooks/use-attestation-creation'
 import { useAttestationFileUpload } from '@/shared/hooks/use-attestation-file-upload'
 import { Button } from '@/shared/ui/button'
 import { PageContainer } from '@/shared/ui/page-container'
@@ -21,8 +21,6 @@ export default function Page() {
     progress,
     attestationResults,
     processAttestations,
-    downloadQRCode,
-    downloadDiplomaImage,
   } = useAttestationCreation()
 
   // Handle wallet connection

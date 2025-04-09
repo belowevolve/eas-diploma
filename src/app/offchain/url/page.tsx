@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/button'
 import { CardDescription } from '@/shared/ui/card'
 import { Text } from '@/shared/ui/text'
 import { Textarea } from '@/shared/ui/textarea'
+import { tryCatchSync } from '@/shared/utils/try-catch'
 import { PrivateData } from '@ethereum-attestation-service/eas-sdk'
 import { CheckIcon, XIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -15,7 +16,7 @@ import { useFragments } from '../fragments-context'
 import { AttestationCard } from '../ui/attestation-card'
 
 interface VerifyResult { isValid: boolean, message: string, proofData?: any[] }
-
+interface HashFileVerifyResult { fileName: string, isValid: boolean, message: string, fileHash: string }
 function verifyProof(attestation: EASAttestation, proofInput: string): VerifyResult {
   if (!proofInput.trim()) {
     return {
@@ -23,24 +24,36 @@ function verifyProof(attestation: EASAttestation, proofInput: string): VerifyRes
       message: 'Пожалуйста, введите корректный пруф для проверки',
     }
   }
-  try {
-    const parsedProof = JSON.parse(proofInput)
-    const merkleRoot = attestation.sig.message.data
-    const isValid = PrivateData.verifyMultiProof(merkleRoot, parsedProof as MerkleMultiProof)
-    return {
-      isValid,
-      message: isValid
-        ? 'Доказательство подтверждено!'
-        : 'Недействительное доказательство!',
-      proofData: isValid ? parsedProof.leaves : undefined,
-    }
-  }
-  catch (err) {
-    console.error('Error verifying proof:', err)
+  const { data: parsedProof, error } = tryCatchSync(() => JSON.parse(proofInput))
+  if (error) {
     return {
       isValid: false,
-      message: `Ошибка проверки доказательства: 'Неверный формат доказательства'`,
+      message: 'Неверный формат доказательства',
     }
+  }
+  const merkleRoot = attestation.sig.message.data
+  const isValid = PrivateData.verifyMultiProof(merkleRoot, parsedProof as MerkleMultiProof)
+  return {
+    isValid,
+    message: isValid
+      ? 'Доказательство подтверждено!'
+      : 'Недействительное доказательство!',
+    proofData: isValid ? parsedProof.leaves : undefined,
+
+  }
+}
+
+async function verifyFileHash(attestation: EASAttestation, file: File): Promise<HashFileVerifyResult> {
+  const buffer = await file.arrayBuffer()
+  const data = new Uint8Array(buffer)
+  const fileHash = sha256(data)
+  const attestationHash = attestation.sig.message.data
+  const isValid = attestationHash === fileHash
+  return {
+    fileName: file.name,
+    isValid,
+    fileHash,
+    message: isValid ? 'Хеш файла совпадает!' : 'Хеш файла не совпадает с аттестацией',
   }
 }
 
@@ -49,7 +62,7 @@ export default function OffchainAttestationPage() {
 
   const [proofInput, setProofInput] = useState('')
   const [verificationResult, setVerificationResult] = useState<VerifyResult | null>(null)
-  const [fileVerification, setFileVerification] = useState<{ fileName: string, fileHash: string, isValid: boolean, message: string } | null>(null)
+  const [fileVerification, setFileVerification] = useState<HashFileVerifyResult | null>(null)
 
   function handleVerifyProof() {
     setVerificationResult(verifyProof(attestation, proofInput))
@@ -138,27 +151,10 @@ export default function OffchainAttestationPage() {
                 e.preventDefault()
                 e.stopPropagation()
                 e.currentTarget.classList.remove('border-primary')
-
                 const file = e.dataTransfer.files[0]
                 if (!file)
                   return
-
-                // Read file as array buffer
-                const buffer = await file.arrayBuffer()
-                // Convert to Uint8Array for hashing
-                const data = new Uint8Array(buffer)
-
-                const fileHash = sha256(data)
-                // Compare with attestation hash
-                const attestationHash = refAttestation?.sig.message.data
-                const isValid = attestationHash === fileHash
-
-                setFileVerification({
-                  fileName: file.name,
-                  fileHash,
-                  isValid,
-                  message: isValid ? 'Хеш файла совпадает!' : 'Хеш файла не совпадает с аттестацией',
-                })
+                setFileVerification(await verifyFileHash(refAttestation, file))
               }}
             >
               <input
@@ -169,18 +165,7 @@ export default function OffchainAttestationPage() {
                   const file = e.target.files?.[0]
                   if (!file)
                     return
-                  const buffer = await file.arrayBuffer()
-                  const data = new Uint8Array(buffer)
-                  const fileHash = sha256(data)
-                  const attestationHash = refAttestation?.sig.message.data
-                  const isValid = attestationHash === fileHash
-
-                  setFileVerification({
-                    fileName: file.name,
-                    fileHash,
-                    isValid,
-                    message: isValid ? 'Хеш файла совпадает!' : 'Хеш файла не совпадает с аттестацией',
-                  })
+                  setFileVerification(await verifyFileHash(refAttestation, file))
                 }}
               />
               <label
