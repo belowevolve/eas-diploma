@@ -11,7 +11,7 @@ interface AttestationResultsProps {
 }
 
 export function AttestationResults({ results, onDownloadQRCode, onDownloadDiplomaImage }: AttestationResultsProps) {
-  const [activeTab, setActiveTab] = useState<'qr' | 'diploma'>('qr')
+  const [activeTab, setActiveTab] = useState<'private' | 'diploma'>('private')
 
   if (results.length === 0) {
     return null
@@ -23,11 +23,11 @@ export function AttestationResults({ results, onDownloadQRCode, onDownloadDiplom
 
       <div className="flex space-x-2 mb-4">
         <Button
-          variant={activeTab === 'qr' ? 'default' : 'outline'}
-          onClick={() => setActiveTab('qr')}
+          variant={activeTab === 'private' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('private')}
           size="sm"
         >
-          QR-коды
+          Приватные данные
         </Button>
         <Button
           variant={activeTab === 'diploma' ? 'default' : 'outline'}
@@ -38,7 +38,7 @@ export function AttestationResults({ results, onDownloadQRCode, onDownloadDiplom
         </Button>
       </div>
 
-      {activeTab === 'qr' && (
+      {activeTab === 'private' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {results.map(result => (
             <div key={result.uid} className="border rounded-md p-4 flex flex-col items-center space-y-3">

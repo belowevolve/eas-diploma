@@ -149,7 +149,7 @@ async function generateQRCode(data: any): Promise<string> {
     return await QRCode.toDataURL(jsonData, {
       errorCorrectionLevel: 'M',
       margin: 1,
-      width: 200,
+      width: 720,
     })
   }
   catch (error) {
