@@ -1,7 +1,7 @@
 'use server'
 import { env } from '@/env'
 import { gql, request } from 'graphql-request'
-import { unstable_cache } from 'next/dist/server/web/spec-extension/unstable-cache'
+import { unstable_cache } from 'next/cache'
 import { easOnchainUrl } from '../../model/url'
 
 const req = gql`

@@ -8,6 +8,7 @@ import QRCode from 'qrcode'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { sha256, zeroAddress, zeroHash } from 'viem'
+import * as XLSX from 'xlsx'
 import { routes } from '../config/ROUTES'
 import { formatDate } from '../lib/utils'
 import { useSigner } from './use-signer'
@@ -183,13 +184,83 @@ export function downloadDiplomaImage(diplomaImage: string, fio: string) {
   document.body.removeChild(link)
 }
 
+// Function to download complete attestation data with QR codes and links
+export function downloadCompleteAttestationData(attestationResults: AttestationResult[], originalFileFormat?: 'csv' | 'xlsx') {
+  if (attestationResults.length === 0) {
+    toast.error('Нет данных для скачивания')
+    return
+  }
+
+  try {
+    // Prepare complete data structure
+    const dataToExport = attestationResults.map(result => ({
+      // Original attestation data
+      uid: result.uid,
+      recipient: result.recipient,
+      fio: result.fio,
+      degree: result.degree,
+      faculty: result.faculty,
+      program: result.program,
+      diploma_theme: result.diploma_theme,
+      date: result.date,
+      formatted_date: result.date ? formatDate(new Date(result.date * 1000)) : '',
+
+      // Generated links only (no base64 data to avoid Excel character limit)
+      public_url: result.url,
+      private_url: result.privateUrl,
+      diploma_image_hash: result.diplomaImageHash,
+    }))
+
+    const timestamp = new Date().toISOString().split('T')[0]
+
+    // Export based on original file format or default to CSV
+    if (originalFileFormat === 'xlsx') {
+      // Export to XLSX
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Attestations')
+
+      // Auto-size columns
+      const columnWidths = Object.keys(dataToExport[0] || {}).map(key => ({
+        wch: Math.max(key.length, 20),
+      }))
+      worksheet['!cols'] = columnWidths
+
+      XLSX.writeFile(workbook, `attestations-complete-${timestamp}.xlsx`)
+      toast.success('Полные данные аттестаций скачаны в формате XLSX')
+    }
+    else {
+      // Export to CSV (default)
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+      const csvContent = XLSX.utils.sheet_to_csv(worksheet)
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `attestations-complete-${timestamp}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      URL.revokeObjectURL(url)
+      toast.success('Полные данные аттестаций скачаны в формате CSV')
+    }
+  }
+  catch (error) {
+    console.error('Error downloading complete attestation data:', error)
+    toast.error('Ошибка при скачивании данных')
+  }
+}
+
 export function useAttestationCreation() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
   const [attestationResults, setAttestationResults] = useState<AttestationResult[]>([])
   const signer = useSigner()
 
-  const processAttestations = async (records: AttestationRecord[], address?: string) => {
+  const processAttestations = async (records: AttestationRecord[], address?: string, originalFileFormat?: 'csv' | 'xlsx') => {
     if (!address || !signer) {
       toast.error('Подключите кошелек')
       return
@@ -372,6 +443,13 @@ export function useAttestationCreation() {
       }
 
       setProgress(100)
+
+      // Download complete attestation data if any attestations were created
+      if (attestationResults.length > 0) {
+        setTimeout(() => {
+          downloadCompleteAttestationData(attestationResults, originalFileFormat)
+        }, 1000) // Small delay to ensure UI updates are complete
+      }
     }
     catch (error) {
       console.error('Ошибка при обработке аттестаций:', error)
@@ -388,5 +466,6 @@ export function useAttestationCreation() {
     attestationResults,
     setAttestationResults,
     processAttestations,
+    downloadCompleteAttestationData, // Export the function for manual use
   }
 }

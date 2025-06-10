@@ -15,7 +15,7 @@ export default function Page() {
   const { open } = useAppKit()
 
   // Custom hooks for file upload and attestation creation
-  const { records, handleFileChange } = useAttestationFileUpload()
+  const { records, handleFileChange, originalFileFormat } = useAttestationFileUpload()
   const {
     isProcessing,
     progress,
@@ -30,7 +30,7 @@ export default function Page() {
 
   // Handle attestation creation
   const handleCreateAttestations = () => {
-    processAttestations(records, address)
+    processAttestations(records, address, originalFileFormat || undefined)
   }
 
   return (

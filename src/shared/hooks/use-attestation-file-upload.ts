@@ -18,6 +18,7 @@ export interface AttestationRecord extends z.infer<typeof recordSchema> {}
 
 export function useAttestationFileUpload() {
   const [records, setRecords] = useState<AttestationRecord[]>([])
+  const [originalFileFormat, setOriginalFileFormat] = useState<'csv' | 'xlsx' | null>(null)
 
   // Parse CSV or XLSX file
   const parseFile = async (file: File) => {
@@ -27,9 +28,11 @@ export function useAttestationFileUpload() {
       try {
         const data = e.target?.result
         let parsedData: Record<string, any>[] = []
+        let fileFormat: 'csv' | 'xlsx'
 
         // Parse based on file extension
         if (file.name.endsWith('.csv')) {
+          fileFormat = 'csv'
           // For CSV files
           const csvText = data as string
           const lines = csvText.split('\n')
@@ -47,6 +50,7 @@ export function useAttestationFileUpload() {
           })
         }
         else {
+          fileFormat = 'xlsx'
           // For XLSX files - updated to work with ArrayBuffer
           const arrayBuffer = data as ArrayBuffer
           const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' })
@@ -62,6 +66,9 @@ export function useAttestationFileUpload() {
             dateNF: 'DD.MM.YYYY',
           })
         }
+
+        // Set the original file format
+        setOriginalFileFormat(fileFormat)
 
         // Validate and convert records
         const validRecords: AttestationRecord[] = []
@@ -149,5 +156,6 @@ export function useAttestationFileUpload() {
     records,
     setRecords,
     handleFileChange,
+    originalFileFormat,
   }
 }
